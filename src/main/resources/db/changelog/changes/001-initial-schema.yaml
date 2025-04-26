@@ -1,0 +1,121 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: melihburakmert
+      comment: Create initial schema for brokerage application
+      changes:
+        # Create Asset table
+        - createTable:
+            tableName: asset
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: customer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: asset_name
+                  type: varchar(5)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size
+                  type: decimal(19,8)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: usable_size
+                  type: decimal(19,8)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_updated
+                  type: datetime
+                  constraints:
+                    nullable: false
+            remarks: Stores customer asset information
+
+        - addUniqueConstraint:
+            tableName: asset
+            columnNames: customer_id, asset_name
+            constraintName: uk_customer_asset
+
+        # Create Order table
+        - createTable:
+            tableName: orders  # 'order' is a reserved keyword in SQL, so using 'orders'
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: customer_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: asset_name
+                  type: varchar(5)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: side
+                  type: varchar(4)  # BUY or SELL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size
+                  type: decimal(19,8)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price
+                  type: decimal(19,8)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(10)  # PENDING, MATCHED, or CANCELED
+                  constraints:
+                    nullable: false
+              - column:
+                  name: create_date
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: update_date
+                  type: datetime
+            remarks: Stores order information
+
+        - createIndex:
+            indexName: idx_customer_asset
+            tableName: asset
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: asset_name
+
+        - createIndex:
+            indexName: idx_order_customer
+            tableName: orders
+            columns:
+              - column:
+                  name: customer_id
+
+        - createIndex:
+            indexName: idx_order_status
+            tableName: orders
+            columns:
+              - column:
+                  name: status
