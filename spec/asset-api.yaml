@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Brokerage Asset API
+  description: API for managing customer assets in a brokerage system
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: assets
+    description: Operations related to customer assets
+
+paths:
+  /api/assets:
+    get:
+      summary: List assets for a customer
+      description: Retrieves all assets owned by a specified customer
+      tags:
+        - assets
+      operationId: listAssets
+      parameters:
+        - name: customerId
+          in: query
+          required: true
+          description: The unique identifier of the customer
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssetResponse'
+        default:
+          description: default error response
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AssetResponse:
+      type: object
+      required:
+        - id
+        - customerId
+        - assetName
+        - size
+        - usableSize
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the asset
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        customerId:
+          type: string
+          description: Customer who owns this asset
+          example: "customer123"
+        assetName:
+          type: string
+          description: Name of the asset (stock symbol or TRY)
+          example: "INGA"
+        size:
+          type: number
+          format: double
+          description: Total amount of the asset owned
+          example: 100.0
+        usableSize:
+          type: number
+          format: double
+          description: Amount of the asset available for trading (not reserved in pending orders)
+          example: 75.0
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Timestamp of the last update to this asset
+          example: "2025-04-26T10:30:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Error message
+          example: "Invalid customerId provided"
+        details:
+          type: string
+          description: Detailed error information
+          example: "Parameter 'customerId' must be a valid UUID"
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the error occurred
+          example: "2025-04-26T10:30:00Z"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Bearer
+security:
+  - bearerAuth: []

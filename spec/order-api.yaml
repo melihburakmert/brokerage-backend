@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: Brokerage Order API
+  description: API for managing stock orders in a brokerage system
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: orders
+    description: Operations related to customer orders
+
+paths:
+  /api/orders:
+    get:
+      summary: List orders for a customer
+      description: Retrieves orders for a customer with optional date range filtering
+      tags:
+        - orders
+      operationId: listOrders
+      parameters:
+        - name: customerId
+          in: query
+          required: true
+          description: The unique identifier of the customer
+          schema:
+            type: string
+        - name: fromDate
+          in: query
+          required: false
+          description: Start date for filtering orders (inclusive)
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: false
+          description: End date for filtering orders (inclusive)
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          required: false
+          description: Filter by order status
+          schema:
+            type: string
+            enum: [PENDING, MATCHED, CANCELED]
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderResponse'
+        default:
+          description: default error response
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a new order
+      description: Creates a new buy or sell order for a customer
+      tags:
+        - orders
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        400:
+          description: Bad Request - Validation error or insufficient assets
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: default error response
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/orders/{orderId}:
+    delete:
+      summary: Cancel an order
+      description: Cancels a pending order. Orders in other statuses cannot be canceled.
+      tags:
+        - orders
+      operationId: cancelOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order to cancel
+          schema:
+            type: integer
+            format: int64
+      responses:
+        204:
+          description: No Content - Order successfully canceled
+        400:
+          description: Bad Request - Order cannot be canceled
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Not Found - Order does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: default error response
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/orders/{orderId}/match:
+    post:
+      summary: Match a pending order (Admin only)
+      description: Changes a pending order to matched status and updates asset amounts accordingly
+      tags:
+        - orders
+      operationId: matchOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order to match
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        400:
+          description: Bad Request - Order cannot be matched
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Not Found - Order does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: default error response
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    CreateOrderRequest:
+      type: object
+      required:
+        - customerId
+        - assetName
+        - side
+        - size
+        - price
+      properties:
+        customerId:
+          type: string
+          description: The unique identifier of the customer
+          example: "customer123"
+        assetName:
+          type: string
+          description: The name/symbol of the asset to trade
+          example: "INGA"
+        side:
+          type: string
+          enum: [BUY, SELL]
+          description: Whether the customer wants to buy or sell
+          example: "BUY"
+        size:
+          type: number
+          format: double
+          description: The quantity of shares to buy or sell
+          example: 10.0
+        price:
+          type: number
+          format: double
+          description: The price per share
+          example: 150.75
+
+    OrderResponse:
+      type: object
+      required:
+        - id
+        - customerId
+        - assetName
+        - side
+        - size
+        - price
+        - status
+        - createDate
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier for the order
+          example: 123456
+        customerId:
+          type: string
+          description: The customer who placed the order
+          example: "customer123"
+        assetName:
+          type: string
+          description: The asset being traded
+          example: "INGA"
+        side:
+          type: string
+          enum: [BUY, SELL]
+          description: Whether it's a buy or sell order
+          example: "BUY"
+        size:
+          type: number
+          format: double
+          description: The quantity of shares
+          example: 10.0
+        price:
+          type: number
+          format: double
+          description: The price per share
+          example: 150.75
+        status:
+          type: string
+          enum: [PENDING, MATCHED, CANCELED]
+          description: Current status of the order
+          example: "PENDING"
+        createDate:
+          type: string
+          format: date-time
+          description: When the order was created
+          example: "2025-04-26T10:30:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Error message
+          example: "Insufficient assets for order"
+        details:
+          type: string
+          description: Detailed error information
+          example: "Customer does not have enough TRY to place this buy order"
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the error occurred
+          example: "2025-04-26T10:30:00Z"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Bearer
+
+security:
+  - bearerAuth: []
