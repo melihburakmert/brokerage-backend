@@ -163,7 +163,7 @@
 							<modelPackage>mbm.brokerage_backend.asset.web.model</modelPackage>
 							<typeMappings>
 								<typeMapping>string+date-time=Instant</typeMapping>
-								<typeMapping>string+binary=stream</typeMapping>
+								<typeMapping>double=java.math.BigDecimal</typeMapping>
 							</typeMappings>
 							<importMappings>
 								<importMapping>Instant=java.time.Instant</importMapping>
@@ -182,7 +182,7 @@
 							<modelPackage>mbm.brokerage_backend.order.web.model</modelPackage>
 							<typeMappings>
 								<typeMapping>string+date-time=Instant</typeMapping>
-								<typeMapping>string+binary=stream</typeMapping>
+								<typeMapping>double=java.math.BigDecimal</typeMapping>
 							</typeMappings>
 							<importMappings>
 								<importMapping>Instant=java.time.Instant</importMapping>
