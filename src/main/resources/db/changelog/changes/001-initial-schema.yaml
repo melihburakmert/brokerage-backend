@@ -34,11 +34,6 @@ databaseChangeLog:
                   type: decimal(19,8)
                   constraints:
                     nullable: false
-              - column:
-                  name: last_updated
-                  type: datetime
-                  constraints:
-                    nullable: false
             remarks: Stores customer asset information
 
         - addUniqueConstraint:
@@ -68,7 +63,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: side
+                  name: order_side
                   type: varchar(4)  # BUY or SELL
                   constraints:
                     nullable: false
@@ -92,9 +87,6 @@ databaseChangeLog:
                   type: datetime
                   constraints:
                     nullable: false
-              - column:
-                  name: update_date
-                  type: datetime
             remarks: Stores order information
 
         - createIndex:

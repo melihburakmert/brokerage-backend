@@ -24,9 +24,6 @@ databaseChangeLog:
               - column:
                   name: usable_size
                   value: 10000.00
-              - column:
-                  name: last_updated
-                  value: "2025-04-01 00:00:00"
 
         # Customer 1 - AAPL
         - insert:
@@ -47,9 +44,6 @@ databaseChangeLog:
               - column:
                   name: usable_size
                   value: 100.00
-              - column:
-                  name: last_updated
-                  value: "2025-04-01 00:00:00"
 
         # Customer 2 - TRY
         - insert:
@@ -70,9 +64,6 @@ databaseChangeLog:
               - column:
                   name: usable_size
                   value: 20000.00
-              - column:
-                  name: last_updated
-                  value: "2025-04-01 00:00:00"
 
         # Customer 2 - MSFT
         - insert:
@@ -93,6 +84,3 @@ databaseChangeLog:
               - column:
                   name: usable_size
                   value: 50.00
-              - column:
-                  name: last_updated
-                  value: "2025-04-01 00:00:00"

@@ -180,7 +180,7 @@ components:
       required:
         - customerId
         - assetName
-        - side
+        - orderSide
         - size
         - price
       properties:
@@ -193,7 +193,7 @@ components:
           maxLength: 5
           description: The name/symbol of the asset to trade
           example: "INGA"
-        side:
+        orderSide:
           type: string
           enum: [BUY, SELL]
           description: Whether the customer wants to buy or sell
@@ -215,7 +215,7 @@ components:
         - id
         - customerId
         - assetName
-        - side
+        - orderSide
         - size
         - price
         - status
@@ -235,7 +235,7 @@ components:
           maxLength: 5
           description: The asset being traded
           example: "INGA"
-        side:
+        orderSide:
           type: string
           enum: [BUY, SELL]
           description: Whether it's a buy or sell order

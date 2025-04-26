@@ -76,11 +76,6 @@ components:
           format: double
           description: Amount of the asset available for trading (not reserved in pending orders)
           example: 75.0
-        lastUpdated:
-          type: string
-          format: date-time
-          description: Timestamp of the last update to this asset
-          example: "2025-04-26T10:30:00Z"
 
     ErrorResponse:
       type: object

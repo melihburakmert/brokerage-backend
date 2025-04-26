@@ -21,7 +21,7 @@ public class AssetDtoToResponseMapper {
             .customerId(assetDto.customerId())
             .assetName(assetDto.assetName())
             .size(assetDto.size())
-            .usableSize(assetDto.usableSize())
-            .lastUpdated(assetDto.lastUpdated());
+            .usableSize(assetDto.usableSize()
+        );
     }
 }

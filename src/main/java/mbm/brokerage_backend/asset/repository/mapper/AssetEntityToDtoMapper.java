@@ -21,8 +21,7 @@ public class AssetEntityToDtoMapper {
             assetEntity.getCustomerId(),
             assetEntity.getAssetName(),
             assetEntity.getSize(),
-            assetEntity.getUsableSize(),
-            assetEntity.getLastUpdated()
+            assetEntity.getUsableSize()
         );
     }
 }

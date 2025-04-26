@@ -14,7 +14,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 
 @Entity
 @Table(name = "asset")
@@ -40,7 +39,4 @@ public class AssetEntity {
     
     @Column(name = "usable_size", nullable = false, precision = 19, scale = 8)
     private BigDecimal usableSize;
-    
-    @Column(name = "last_updated", nullable = false)
-    private Instant lastUpdated;
 }
