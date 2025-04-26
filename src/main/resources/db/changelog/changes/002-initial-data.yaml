@@ -1,0 +1,98 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2
+      author: melihburakmert
+      comment: Insert initial data for testing
+      changes:
+        # Insert initial assets for testing
+        # Customer 1 - TRY
+        - insert:
+            tableName: asset
+            columns:
+              - column:
+                  name: id
+                  value: "3a1ac270-4e20-4353-91e1-e2a827698c33"
+              - column:
+                  name: customer_id
+                  value: "customer1"
+              - column:
+                  name: asset_name
+                  value: "TRY"
+              - column:
+                  name: size
+                  value: 10000.00
+              - column:
+                  name: usable_size
+                  value: 10000.00
+              - column:
+                  name: last_updated
+                  value: "2025-04-01 00:00:00"
+
+        # Customer 1 - AAPL
+        - insert:
+            tableName: asset
+            columns:
+              - column:
+                  name: id
+                  value: "f4c1b8b0-7c6a-4f4a-8d4a-9b2b3d4c5d6e"
+              - column:
+                  name: customer_id
+                  value: "customer1"
+              - column:
+                  name: asset_name
+                  value: "AAPL"
+              - column:
+                  name: size
+                  value: 100.00
+              - column:
+                  name: usable_size
+                  value: 100.00
+              - column:
+                  name: last_updated
+                  value: "2025-04-01 00:00:00"
+
+        # Customer 2 - TRY
+        - insert:
+            tableName: asset
+            columns:
+              - column:
+                  name: id
+                  value: "5b2bc380-5f30-5454-a2f2-f3b938789d44"
+              - column:
+                  name: customer_id
+                  value: "customer2"
+              - column:
+                  name: asset_name
+                  value: "TRY"
+              - column:
+                  name: size
+                  value: 20000.00
+              - column:
+                  name: usable_size
+                  value: 20000.00
+              - column:
+                  name: last_updated
+                  value: "2025-04-01 00:00:00"
+
+        # Customer 2 - MSFT
+        - insert:
+            tableName: asset
+            columns:
+              - column:
+                  name: id
+                  value: "6d3c292f-8d7b-5f5b-9e5a-ac3c4e5f6g7h"
+              - column:
+                  name: customer_id
+                  value: "customer2"
+              - column:
+                  name: asset_name
+                  value: "MSFT"
+              - column:
+                  name: size
+                  value: 50.00
+              - column:
+                  name: usable_size
+                  value: 50.00
+              - column:
+                  name: last_updated
+                  value: "2025-04-01 00:00:00"
