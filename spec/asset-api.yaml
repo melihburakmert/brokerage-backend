@@ -63,6 +63,7 @@ components:
           example: "customer123"
         assetName:
           type: string
+          maxLength: 5
           description: Name of the asset (stock symbol or TRY)
           example: "INGA"
         size:

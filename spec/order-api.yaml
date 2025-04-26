@@ -190,6 +190,7 @@ components:
           example: "customer123"
         assetName:
           type: string
+          maxLength: 5
           description: The name/symbol of the asset to trade
           example: "INGA"
         side:
@@ -231,6 +232,7 @@ components:
           example: "customer123"
         assetName:
           type: string
+          maxLength: 5
           description: The asset being traded
           example: "INGA"
         side:
