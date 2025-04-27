@@ -65,8 +65,56 @@ public class OrderServiceImp implements OrderService {
     @Override
     @Transactional
     public OrderDto matchOrder(final Long orderId) {
-        // TODO - Bonus
-        return null;
+        final OrderEntity order = orderRepository.findByIdAndStatus(orderId, OrderStatus.PENDING)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+        final String customerId = order.getCustomerId();
+        final String assetName = order.getAssetName();
+        final BigDecimal orderSize = order.getSize();
+        final BigDecimal orderPrice = order.getPrice();
+
+        if (order.getOrderSide() == OrderSide.BUY) {
+            final AssetDto tryAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, TRY);
+            final AssetDto boughtAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+
+            final BigDecimal totalCost = orderPrice.multiply(orderSize);
+
+            if (tryAsset.size().compareTo(totalCost) < 0) {
+                throw new InsufficientAssetsException(customerId, TRY, totalCost, tryAsset.size());
+            }
+
+            // Decrease TRY asset's total size only
+            assetService.updateAssetSize(customerId, TRY, tryAsset.size().subtract(totalCost));
+
+            // Increase bought asset's total and usable size
+            assetService.updateAssetSizeAndUsableSize(
+                customerId, assetName,
+                boughtAsset.size().add(orderSize),
+                boughtAsset.usableSize().add(orderSize)
+            );
+        } else {
+            final AssetDto sellAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+            final AssetDto tryAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, TRY);
+
+            if (sellAsset.size().compareTo(orderSize) < 0) {
+                throw new InsufficientAssetsException(customerId, assetName, orderSize, sellAsset.size());
+            }
+
+            // Decrease asset's total size only
+            assetService.updateAssetSize(customerId, assetName, sellAsset.size().subtract(orderSize));
+
+            // Increase TRY asset's total and usable size
+            final BigDecimal totalProceeds = orderPrice.multiply(orderSize);
+            assetService.updateAssetSizeAndUsableSize(
+                customerId, TRY,
+                tryAsset.size().add(totalProceeds),
+                tryAsset.usableSize().add(totalProceeds)
+            );
+        }
+
+        order.setStatus(OrderStatus.MATCHED);
+        final OrderEntity savedOrder = orderRepository.save(order);
+        return orderEntityToDtoMapper.map(savedOrder);
     }
 
     private OrderEntity buildOrderEntity(final CreateOrderDto createOrderDto) {

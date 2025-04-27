@@ -33,20 +33,40 @@ public class AssetServiceImp implements AssetService {
 
     @Override
     public AssetDto getAssetByCustomerIdAndAssetName(final String customerId, final String assetName) {
-        return assetRepository.findByCustomerIdAndAssetName(customerId, assetName)
-                .map(assetEntityToDtoMapper::map)
-                .orElseThrow(() -> new AssetNotFoundException(customerId, assetName));
+        final AssetEntity assetEntity = getAssetEntity(customerId, assetName);
+        return assetEntityToDtoMapper.map(assetEntity);
     }
 
     @Override
     @Transactional
-    public AssetDto updateAssetUsableSize(final String customerId, final String assetName, final BigDecimal newUsableSize) {
-        final AssetEntity asset = assetRepository.findByCustomerIdAndAssetName(customerId, assetName)
-                .orElseThrow(() -> new AssetNotFoundException(customerId, assetName));
+    public void updateAssetSize(final String customerId, final String assetName, final BigDecimal newSize) {
+        final AssetEntity asset = getAssetEntity(customerId, assetName);
+
+        asset.setSize(newSize);
+        assetRepository.save(asset);
+    }
+
+    @Override
+    @Transactional
+    public void updateAssetUsableSize(final String customerId, final String assetName, final BigDecimal newUsableSize) {
+        final AssetEntity asset = getAssetEntity(customerId, assetName);
 
         asset.setUsableSize(newUsableSize);
+        assetRepository.save(asset);
+    }
 
-        final AssetEntity updatedAsset = assetRepository.save(asset);
-        return assetEntityToDtoMapper.map(updatedAsset);
+    @Override
+    @Transactional
+    public void updateAssetSizeAndUsableSize(final String customerId, final String assetName, final BigDecimal newSize, final BigDecimal newUsableSize) {
+        final AssetEntity asset = getAssetEntity(customerId, assetName);
+
+        asset.setSize(newSize);
+        asset.setUsableSize(newUsableSize);
+        assetRepository.save(asset);
+    }
+
+    private AssetEntity getAssetEntity(final String customerId, final String assetName) {
+        return assetRepository.findByCustomerIdAndAssetName(customerId, assetName)
+                .orElseThrow(() -> new AssetNotFoundException(customerId, assetName));
     }
 }

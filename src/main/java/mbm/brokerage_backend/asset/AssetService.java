@@ -9,5 +9,10 @@ public interface AssetService {
 
     AssetDto getAssetByCustomerIdAndAssetName(String customerId, String assetName);
 
-    AssetDto updateAssetUsableSize(String customerId, String assetName, BigDecimal newUsableSize);
+    void updateAssetSize(String customerId, String assetName, BigDecimal newSize);
+
+    void updateAssetUsableSize(String customerId, String assetName, BigDecimal newUsableSize);
+
+    void updateAssetSizeAndUsableSize(String customerId, String assetName, BigDecimal newSize, BigDecimal newUsableSize);
 }
+
