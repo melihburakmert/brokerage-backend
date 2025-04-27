@@ -8,8 +8,10 @@ import mbm.brokerage_backend.order.web.mapper.CreateOrderRequestToDtoMapper;
 import mbm.brokerage_backend.order.web.mapper.OrderDtoToResponseMapper;
 import mbm.brokerage_backend.order.web.model.CreateOrderRequest;
 import mbm.brokerage_backend.order.web.model.OrderResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,6 +44,8 @@ public class OrderController implements OrdersApiDelegate {
     public ResponseEntity<List<OrderResponse>> listOrders(final String customerId,
                                                           final Instant fromDate,
                                                           final Instant toDate) {
+        validateDateRangeOrder(fromDate, toDate);
+
         final List<OrderDto> orders = orderService.getOrders(customerId, fromDate, toDate);
         final List<OrderResponse> orderResponses = orderDtoToResponseMapper.map(orders);
         return ResponseEntity.ok(orderResponses);
@@ -58,5 +62,14 @@ public class OrderController implements OrdersApiDelegate {
         final OrderDto matchedOrder = orderService.matchOrder(orderId);
         final OrderResponse orderResponse = orderDtoToResponseMapper.map(matchedOrder);
         return ResponseEntity.ok(orderResponse);
+    }
+
+    private void validateDateRangeOrder(final Instant fromDate, final Instant toDate) {
+        if (fromDate != null && toDate != null && !fromDate.isBefore(toDate)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "fromDate must be before toDate"
+            );
+        }
     }
 }

@@ -47,7 +47,6 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     public List<OrderDto> getOrders(final String customerId, final Instant fromDate, final Instant toDate) {
-        // TODO: Validate date range params
         return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, toDate).stream()
                 .map(orderEntityToDtoMapper::map)
                 .toList();
