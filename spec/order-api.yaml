@@ -32,21 +32,14 @@ paths:
           description: Start date for filtering orders (inclusive)
           schema:
             type: string
-            format: date
+            format: date-time
         - name: toDate
           in: query
           required: false
           description: End date for filtering orders (inclusive)
           schema:
             type: string
-            format: date
-        - name: status
-          in: query
-          required: false
-          description: Filter by order status
-          schema:
-            type: string
-            enum: [PENDING, MATCHED, CANCELED]
+            format: date-time
       responses:
         200:
           description: OK
