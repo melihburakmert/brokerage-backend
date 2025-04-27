@@ -103,9 +103,9 @@ components:
           example: "2025-04-26T10:30:00Z"
 
   securitySchemes:
-    bearerAuth:
+    basicAuth:
       type: http
-      scheme: bearer
-      bearerFormat: Bearer
+      scheme: basic
+
 security:
-  - bearerAuth: []
+  - basicAuth: []
