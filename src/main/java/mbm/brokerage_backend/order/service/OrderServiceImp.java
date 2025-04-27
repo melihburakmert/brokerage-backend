@@ -35,17 +35,6 @@ public class OrderServiceImp implements OrderService {
     }
 
     @Override
-    @Transactional
-    public OrderDto createOrder(final CreateOrderDto createOrderDto) {
-        validateAndUpdateAssetUsableSize(createOrderDto);
-
-        final OrderEntity order = buildOrderEntity(createOrderDto);
-        final OrderEntity savedOrder = orderRepository.save(order);
-        return orderEntityToDtoMapper.map(savedOrder);
-    }
-
-
-    @Override
     public List<OrderDto> getOrders(final String customerId, final Instant fromDate, final Instant toDate) {
         return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, toDate).stream()
                 .map(orderEntityToDtoMapper::map)
@@ -54,9 +43,37 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     @Transactional
+    public OrderDto createOrder(final CreateOrderDto createOrderDto) {
+        final String customerId = createOrderDto.customerId();
+        final String assetName = createOrderDto.orderSide() == OrderSide.BUY ? TRY : createOrderDto.assetName();
+        final BigDecimal requiredAmount = calculateOrderValue(createOrderDto.orderSide(), createOrderDto.price(), createOrderDto.size());
+
+        final AssetDto asset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+
+        validateSufficientAssetSize(asset, requiredAmount, customerId, assetName);
+
+        final BigDecimal newUsableSize = asset.usableSize().subtract(requiredAmount);
+        assetService.updateAssetUsableSize(customerId, assetName, newUsableSize);
+
+        final OrderEntity order = buildOrderEntity(createOrderDto);
+        final OrderEntity savedOrder = orderRepository.save(order);
+        return orderEntityToDtoMapper.map(savedOrder);
+    }
+
+    @Override
+    @Transactional
     public void cancelOrder(final Long orderId) {
-        final OrderEntity order = orderRepository.findByIdAndStatus(orderId, OrderStatus.PENDING).orElseThrow(() -> new OrderNotFoundException(orderId));
-        updateAssetUsableSize(order);
+        final OrderEntity order = orderRepository.findByIdAndStatus(orderId, OrderStatus.PENDING)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+        final String customerId = order.getCustomerId();
+        final String assetName = order.getOrderSide() == OrderSide.BUY ? TRY : order.getAssetName();
+        final BigDecimal amountToReturn = calculateOrderValue(order.getOrderSide(), order.getPrice(), order.getSize());
+
+        final AssetDto asset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+
+        final BigDecimal newUsableSize = asset.usableSize().add(amountToReturn);
+        assetService.updateAssetUsableSize(customerId, assetName, newUsableSize);
 
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
@@ -74,47 +91,47 @@ public class OrderServiceImp implements OrderService {
         final BigDecimal orderPrice = order.getPrice();
 
         if (order.getOrderSide() == OrderSide.BUY) {
-            final AssetDto tryAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, TRY);
-            final AssetDto boughtAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
-
-            final BigDecimal totalCost = orderPrice.multiply(orderSize);
-
-            if (tryAsset.size().compareTo(totalCost) < 0) {
-                throw new InsufficientAssetsException(customerId, TRY, totalCost, tryAsset.size());
-            }
-
-            // Decrease TRY asset's total size only
-            assetService.updateAssetSize(customerId, TRY, tryAsset.size().subtract(totalCost));
-
-            // Increase bought asset's total and usable size
-            assetService.updateAssetSizeAndUsableSize(
-                customerId, assetName,
-                boughtAsset.size().add(orderSize),
-                boughtAsset.usableSize().add(orderSize)
-            );
+            matchBuyOrder(customerId, assetName, orderSize, orderPrice);
         } else {
-            final AssetDto sellAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
-            final AssetDto tryAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, TRY);
-
-            if (sellAsset.size().compareTo(orderSize) < 0) {
-                throw new InsufficientAssetsException(customerId, assetName, orderSize, sellAsset.size());
-            }
-
-            // Decrease asset's total size only
-            assetService.updateAssetSize(customerId, assetName, sellAsset.size().subtract(orderSize));
-
-            // Increase TRY asset's total and usable size
-            final BigDecimal totalProceeds = orderPrice.multiply(orderSize);
-            assetService.updateAssetSizeAndUsableSize(
-                customerId, TRY,
-                tryAsset.size().add(totalProceeds),
-                tryAsset.usableSize().add(totalProceeds)
-            );
+            matchSellOrder(customerId, assetName, orderSize, orderPrice);
         }
 
         order.setStatus(OrderStatus.MATCHED);
         final OrderEntity savedOrder = orderRepository.save(order);
         return orderEntityToDtoMapper.map(savedOrder);
+    }
+
+    private void matchBuyOrder(final String customerId, final String assetName, final BigDecimal orderSize, final BigDecimal orderPrice) {
+        final AssetDto tryAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, TRY);
+        final AssetDto boughtAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+
+        final BigDecimal totalCost = orderPrice.multiply(orderSize);
+
+        validateSufficientAssetSize(tryAsset, totalCost, customerId, TRY);
+
+        assetService.updateAssetSize(customerId, TRY, tryAsset.size().subtract(totalCost));
+
+        assetService.updateAssetSizeAndUsableSize(
+            customerId, assetName,
+            boughtAsset.size().add(orderSize),
+            boughtAsset.usableSize().add(orderSize)
+        );
+    }
+
+    private void matchSellOrder(final String customerId, final String assetName, final BigDecimal orderSize, final BigDecimal orderPrice) {
+        final AssetDto sellAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+        final AssetDto tryAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, TRY);
+
+        validateSufficientAssetSize(sellAsset, orderSize, customerId, assetName);
+
+        assetService.updateAssetSize(customerId, assetName, sellAsset.size().subtract(orderSize));
+
+        final BigDecimal totalProceeds = orderPrice.multiply(orderSize);
+        assetService.updateAssetSizeAndUsableSize(
+            customerId, TRY,
+            tryAsset.size().add(totalProceeds),
+            tryAsset.usableSize().add(totalProceeds)
+        );
     }
 
     private OrderEntity buildOrderEntity(final CreateOrderDto createOrderDto) {
@@ -129,34 +146,13 @@ public class OrderServiceImp implements OrderService {
                 .build();
     }
 
-    private void validateAndUpdateAssetUsableSize(final CreateOrderDto createOrderDto) {
-        final String customerId = createOrderDto.customerId();
-        final String assetName = createOrderDto.orderSide() == OrderSide.BUY ? TRY : createOrderDto.assetName();
-        final BigDecimal requiredAmount = calculateOrderValue(createOrderDto.orderSide(), createOrderDto.price(), createOrderDto.size());
-
-        final AssetDto asset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
-
-        if (asset.usableSize().compareTo(requiredAmount) < 0) {
-            throw new InsufficientAssetsException(customerId, assetName, requiredAmount, asset.usableSize());
-        }
-
-        final BigDecimal newUsableSize = asset.usableSize().subtract(requiredAmount);
-        assetService.updateAssetUsableSize(customerId, assetName, newUsableSize);
-    }
-
-    private void updateAssetUsableSize(final OrderEntity order) {
-        final String customerId = order.getCustomerId();
-        final String assetName = order.getOrderSide() == OrderSide.BUY ? TRY : order.getAssetName();
-        final BigDecimal amountToReturn = calculateOrderValue(order.getOrderSide(), order.getPrice(), order.getSize());
-
-        final AssetDto asset = assetService.getAssetByCustomerIdAndAssetName(
-                customerId, assetName);
-
-        final BigDecimal newUsableSize = asset.usableSize().add(amountToReturn);
-        assetService.updateAssetUsableSize(customerId, assetName, newUsableSize);
-    }
-
     private BigDecimal calculateOrderValue(final OrderSide orderSide, final BigDecimal orderPrice, final BigDecimal orderSize) {
         return orderSide == OrderSide.BUY ? orderPrice.multiply(orderSize) : orderSize;
+    }
+
+    private void validateSufficientAssetSize(final AssetDto asset, final BigDecimal required, final String customerId, final String assetName) {
+        if (asset.size().compareTo(required) < 0) {
+            throw new InsufficientAssetsException(customerId, assetName, required, asset.size());
+        }
     }
 }

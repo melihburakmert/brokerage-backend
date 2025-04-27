@@ -7,9 +7,9 @@ import java.util.List;
 
 public interface OrderService {
 
-    OrderDto createOrder(CreateOrderDto createOrderDto);
-
     List<OrderDto> getOrders(String customerId, Instant fromDate, Instant toDate);
+
+    OrderDto createOrder(CreateOrderDto createOrderDto);
 
     void cancelOrder(Long orderId);
 
