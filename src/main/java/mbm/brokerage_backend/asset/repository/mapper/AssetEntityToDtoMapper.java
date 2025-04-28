@@ -16,12 +16,12 @@ public class AssetEntityToDtoMapper {
     }
 
     public AssetDto map(final AssetEntity assetEntity) {
-        return new AssetDto(
-            assetEntity.getId(),
-            assetEntity.getCustomerId(),
-            assetEntity.getAssetName(),
-            assetEntity.getSize(),
-            assetEntity.getUsableSize()
-        );
+        return AssetDto.builder()
+            .id(assetEntity.getId())
+            .customerId(assetEntity.getCustomerId())
+            .assetName(assetEntity.getAssetName())
+            .size(assetEntity.getSize())
+            .usableSize(assetEntity.getUsableSize())
+            .build();
     }
 }
