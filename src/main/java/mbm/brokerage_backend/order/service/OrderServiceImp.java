@@ -74,7 +74,7 @@ public class OrderServiceImp implements OrderService {
         final BigDecimal newUsableSize = asset.usableSize().add(amountToReturn);
         assetService.updateAssetUsableSize(customerId, assetName, newUsableSize);
 
-        order.setStatus(OrderStatus.CANCELLED);
+        order.setStatus(OrderStatus.CANCELED);
         orderRepository.save(order);
     }
 

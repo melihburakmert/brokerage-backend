@@ -283,7 +283,7 @@ class OrderServiceUT {
                 tryAsset.usableSize().add(amountToReturn));
 
         verify(orderRepository).save(argThat(order ->
-                order.getStatus() == OrderStatus.CANCELLED));
+                order.getStatus() == OrderStatus.CANCELED));
     }
 
     @Test
@@ -334,7 +334,7 @@ class OrderServiceUT {
                 btcAsset.usableSize().add(orderSize));
 
         verify(orderRepository).save(argThat(order ->
-                order.getStatus() == OrderStatus.CANCELLED));
+                order.getStatus() == OrderStatus.CANCELED));
     }
 
     @Test

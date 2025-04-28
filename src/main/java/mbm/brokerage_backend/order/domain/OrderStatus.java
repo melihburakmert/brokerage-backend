@@ -9,7 +9,7 @@ import java.util.Arrays;
 public enum OrderStatus {
     PENDING("PENDING"),
     MATCHED("MATCHED"),
-    CANCELLED("CANCELLED");
+    CANCELED("CANCELED");
 
     private final String value;
 

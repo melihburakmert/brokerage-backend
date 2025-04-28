@@ -39,7 +39,7 @@ class OrderControllerUT {
 
     @BeforeEach
     void setUp() {
-        orderController = new OrderController(null, orderDtoToResponseMapper, orderService);
+        orderController = new OrderController(createOrderRequestToDtoMapper, orderDtoToResponseMapper, orderService);
     }
 
     @Test
@@ -68,8 +68,8 @@ class OrderControllerUT {
     void test_listOrders() {
         // GIVEN
         final String customerId = create(String.class);
-        final Instant fromDate = create(Instant.class);
-        final Instant toDate = create(Instant.class);
+        final Instant fromDate = Instant.now().minusSeconds(create(Long.class));
+        final Instant toDate = Instant.now();
         final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
         final List<OrderResponse> orderResponses = ofList(OrderResponse.class).size(SIZE).create();
 
@@ -83,6 +83,50 @@ class OrderControllerUT {
         assertThat(response).isNotNull().satisfies(orderResponse -> {
             assertThat(orderResponse.getStatusCode().is2xxSuccessful()).isTrue();
             assertThat(orderResponse.getBody()).isNotNull().isEqualTo(orderResponses);
+        });
+    }
+
+    @Test
+    void test_listOrders_invalidDateRange() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final Instant fromDate = Instant.now();
+        final Instant toDate = Instant.now().minusSeconds(create(Long.class));
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderController.listOrders(customerId, fromDate, toDate))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("fromDate must be before toDate");
+    }
+
+    @Test
+    void test_listOrders_nullDateRange() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final Instant toDate = Instant.now();
+
+        // WHEN
+        final ResponseEntity<List<OrderResponse>> response = orderController.listOrders(customerId, null, toDate);
+
+        // THEN
+        assertThat(response).isNotNull().satisfies(orderResponse -> {
+            assertThat(orderResponse.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(orderResponse.getBody()).isNotNull();
+        });
+    }
+
+    @Test
+    void test_listOrders_nullDateRange_both() {
+        // GIVEN
+        final String customerId = create(String.class);
+
+        // WHEN
+        final ResponseEntity<List<OrderResponse>> response = orderController.listOrders(customerId, null, null);
+
+        // THEN
+        assertThat(response).isNotNull().satisfies(orderResponse -> {
+            assertThat(orderResponse.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(orderResponse.getBody()).isNotNull();
         });
     }
 
