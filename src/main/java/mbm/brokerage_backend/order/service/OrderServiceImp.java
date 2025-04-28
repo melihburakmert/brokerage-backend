@@ -36,9 +36,8 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     public List<OrderDto> getOrders(final String customerId, final Instant fromDate, final Instant toDate) {
-        return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, toDate).stream()
-                .map(orderEntityToDtoMapper::map)
-                .toList();
+        final List<OrderEntity> orderEntities = orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, toDate);
+        return orderEntityToDtoMapper.map(orderEntities);
     }
 
     @Override
