@@ -4,6 +4,45 @@ databaseChangeLog:
       author: melihburakmert
       comment: Insert initial data for testing
       changes:
+        # Insert initial admin user
+        - insert:
+            tableName: customer
+            columns:
+              - column:
+                  name: username
+                  value: "admin"
+              - column:
+                  name: password
+                  value: "$2a$10$3cBhYKiw3gYt9Owb76GcpObn9jRYCRaPaV/xN9q0OcAQGRj60yLH." # encoded "admin"
+              - column:
+                  name: role
+                  value: "ADMIN"
+        # Insert initial customers
+        - insert:
+            tableName: customer
+            columns:
+              - column:
+                  name: username
+                  value: "customer1"
+              - column:
+                  name: password
+                  value: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG" # encoded "password"
+              - column:
+                  name: role
+                  value: "CUSTOMER"
+
+        - insert:
+            tableName: customer
+            columns:
+              - column:
+                  name: username
+                  value: "customer2"
+              - column:
+                  name: password
+                  value: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG" # encoded "password"
+              - column:
+                  name: role
+                  value: "CUSTOMER"
         # Insert initial assets for testing
         # Customer 1 - TRY
         - insert:
