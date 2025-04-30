@@ -23,7 +23,7 @@ paths:
         - name: customerId
           in: query
           required: true
-          description: The unique identifier of the customer
+          description: The unique identifier(username) of the customer
           schema:
             type: string
         - name: fromDate
@@ -179,7 +179,7 @@ components:
       properties:
         customerId:
           type: string
-          description: The unique identifier of the customer
+          description: The unique identifier(username) of the customer
           example: "customer123"
         assetName:
           type: string
@@ -280,9 +280,10 @@ components:
           example: "2025-04-26T10:30:00Z"
 
   securitySchemes:
-    basicAuth:
+    bearerAuth:
       type: http
-      scheme: basic
+      scheme: bearer
+      bearerFormat: JWT
 
 security:
-  - basicAuth: []
+  - bearerAuth: []
