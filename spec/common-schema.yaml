@@ -1,0 +1,38 @@
+openapi: 3.0.3
+info:
+  title: Common Schemas
+  description: Common schemas for the Brokerage API
+  version: 1.0.0
+
+tags:
+  - name: common
+servers:
+  - url: http://localhost:8080
+paths: {}
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Error message
+          example: "Invalid request parameters"
+        details:
+          type: string
+          description: Detailed error information
+          example: "Parameter must be a valid string"
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the error occurred
+          example: "2025-04-26T10:30:00Z"

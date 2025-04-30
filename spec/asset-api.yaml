@@ -40,7 +40,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -76,31 +76,6 @@ components:
           format: double
           description: Amount of the asset available for trading (not reserved in pending orders)
           example: 75.0
-
-    ErrorResponse:
-      type: object
-      required:
-        - status
-        - message
-      properties:
-        status:
-          type: integer
-          format: int32
-          description: HTTP status code
-          example: 400
-        message:
-          type: string
-          description: Error message
-          example: "Invalid customerId provided"
-        details:
-          type: string
-          description: Detailed error information
-          example: "Parameter 'customerId' must be a valid string"
-        timestamp:
-          type: string
-          format: date-time
-          description: Time when the error occurred
-          example: "2025-04-26T10:30:00Z"
 
   securitySchemes:
     bearerAuth:
