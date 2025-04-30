@@ -2,7 +2,7 @@ package mbm.brokerage_backend.asset.service;
 
 import mbm.brokerage_backend.asset.AssetDto;
 import mbm.brokerage_backend.asset.AssetService;
-import mbm.brokerage_backend.asset.exception.AssetNotFoundException;
+import mbm.brokerage_backend.common.AssetNotFoundException;
 import mbm.brokerage_backend.asset.repository.AssetRepository;
 import mbm.brokerage_backend.asset.repository.entity.AssetEntity;
 import mbm.brokerage_backend.asset.repository.mapper.AssetEntityToDtoMapper;
@@ -23,6 +23,15 @@ public class AssetServiceImp implements AssetService {
             final AssetEntityToDtoMapper assetEntityToDtoMapper) {
         this.assetRepository = assetRepository;
         this.assetEntityToDtoMapper = assetEntityToDtoMapper;
+    }
+
+    @Override
+    @Transactional
+    public AssetDto initializeAsset(final String customerId, final String assetName) {
+        final AssetEntity assetEntity = buildAsset(customerId, assetName);
+
+        final AssetEntity savedAsset = assetRepository.save(assetEntity);
+        return assetEntityToDtoMapper.map(savedAsset);
     }
 
     @Override
@@ -65,8 +74,22 @@ public class AssetServiceImp implements AssetService {
         assetRepository.save(asset);
     }
 
+    @Override
+    public boolean isAssetExists(final String customerId, final String assetName) {
+        return assetRepository.existsByCustomerIdAndAssetName(customerId, assetName);
+    }
+
     private AssetEntity getAssetEntity(final String customerId, final String assetName) {
         return assetRepository.findByCustomerIdAndAssetName(customerId, assetName)
-                .orElseThrow(() -> new AssetNotFoundException(customerId, assetName));
+                .orElseThrow(() -> new AssetNotFoundException(assetName));
+    }
+
+    private AssetEntity buildAsset(final String customerId, final String assetName) {
+        return AssetEntity.builder()
+                .customerId(customerId)
+                .assetName(assetName)
+                .size(BigDecimal.ZERO)
+                .usableSize(BigDecimal.ZERO)
+                .build();
     }
 }

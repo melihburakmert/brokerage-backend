@@ -80,6 +80,30 @@ class AuthServiceUT {
         assertThat(result).isFalse();
     }
 
+    @Test
+    void test_canAccessCustomerData_whenAuthenticationIsNull() {
+        // GIVEN
+        SecurityContextHolder.clearContext();
+
+        // WHEN
+        final boolean result = authService.canAccessCustomerData(CUSTOMER_ID);
+
+        // THEN
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void test_canAccessCustomerData_whenUserIsNotAuthenticated() {
+        // GIVEN
+        mockUnauthenticatedUser();
+
+        // WHEN
+        final boolean result = authService.canAccessCustomerData(CUSTOMER_ID);
+
+        // THEN
+        assertThat(result).isFalse();
+    }
+
     private void mockAuthenticateUser(final String username, final boolean isAdmin) {
         final SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
 
@@ -93,6 +117,16 @@ class AuthServiceUT {
         final UserDetails userDetails = new User(username, "password", authorities);
         final UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
+    }
+
+    private void mockUnauthenticatedUser() {
+        final SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        final UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(null, null, null);
+        authentication.setAuthenticated(false);
 
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);

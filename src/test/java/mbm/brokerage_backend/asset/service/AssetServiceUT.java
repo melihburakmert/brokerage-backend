@@ -2,7 +2,7 @@ package mbm.brokerage_backend.asset.service;
 
 import mbm.brokerage_backend.asset.AssetDto;
 import mbm.brokerage_backend.asset.AssetService;
-import mbm.brokerage_backend.asset.exception.AssetNotFoundException;
+import mbm.brokerage_backend.common.AssetNotFoundException;
 import mbm.brokerage_backend.asset.repository.AssetRepository;
 import mbm.brokerage_backend.asset.repository.entity.AssetEntity;
 import mbm.brokerage_backend.asset.repository.mapper.AssetEntityToDtoMapper;
@@ -205,5 +205,65 @@ class AssetServiceUT {
         assertThrows(AssetNotFoundException.class, () -> assetService.updateAssetSizeAndUsableSize(customerId, assetName, newSize, newUsableSize));
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verifyNoMoreInteractions(assetRepository);
+    }
+
+    @Test
+    void test_initializeAsset() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+
+        final AssetEntity expectedEntity = AssetEntity.builder()
+                .customerId(customerId)
+                .assetName(assetName)
+                .size(BigDecimal.ZERO)
+                .usableSize(BigDecimal.ZERO)
+                .build();
+
+        final AssetEntity savedEntity = create(AssetEntity.class);
+        final AssetDto expectedDto = create(AssetDto.class);
+
+        when(assetRepository.save(expectedEntity)).thenReturn(savedEntity);
+        when(assetEntityToDtoMapper.map(savedEntity)).thenReturn(expectedDto);
+
+        // WHEN
+        final AssetDto result = assetService.initializeAsset(customerId, assetName);
+
+        // THEN
+        assertThat(result).isNotNull().isEqualTo(expectedDto);
+        verify(assetRepository).save(expectedEntity);
+        verify(assetEntityToDtoMapper).map(savedEntity);
+    }
+
+    @Test
+    void test_isAssetExists_whenAssetExists() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+
+        when(assetRepository.existsByCustomerIdAndAssetName(customerId, assetName)).thenReturn(true);
+
+        // WHEN
+        final boolean result = assetService.isAssetExists(customerId, assetName);
+
+        // THEN
+        assertThat(result).isTrue();
+        verify(assetRepository).existsByCustomerIdAndAssetName(customerId, assetName);
+    }
+
+    @Test
+    void test_isAssetExists_whenAssetDoesNotExist() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+
+        when(assetRepository.existsByCustomerIdAndAssetName(customerId, assetName)).thenReturn(false);
+
+        // WHEN
+        final boolean result = assetService.isAssetExists(customerId, assetName);
+
+        // THEN
+        assertThat(result).isFalse();
+        verify(assetRepository).existsByCustomerIdAndAssetName(customerId, assetName);
     }
 }

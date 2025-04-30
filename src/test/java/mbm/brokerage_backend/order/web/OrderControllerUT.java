@@ -7,6 +7,7 @@ import mbm.brokerage_backend.order.web.mapper.CreateOrderRequestToDtoMapper;
 import mbm.brokerage_backend.order.web.mapper.OrderDtoToResponseMapper;
 import mbm.brokerage_backend.order.web.model.CreateOrderRequest;
 import mbm.brokerage_backend.order.web.model.OrderResponse;
+import mbm.brokerage_backend.auth.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,9 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.instancio.Instancio.create;
 import static org.instancio.Instancio.ofList;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OrderControllerUT {
@@ -34,12 +33,13 @@ class OrderControllerUT {
     @Mock private CreateOrderRequestToDtoMapper createOrderRequestToDtoMapper;
     @Mock private OrderDtoToResponseMapper orderDtoToResponseMapper;
     @Mock private OrderService orderService;
+    @Mock private AuthService authService;
 
     private OrderController orderController;
 
     @BeforeEach
     void setUp() {
-        orderController = new OrderController(createOrderRequestToDtoMapper, orderDtoToResponseMapper, orderService);
+        orderController = new OrderController(createOrderRequestToDtoMapper, orderDtoToResponseMapper, orderService, authService);
     }
 
     @Test
@@ -51,6 +51,7 @@ class OrderControllerUT {
         final OrderResponse orderResponse = create(OrderResponse.class);
 
         when(createOrderRequestToDtoMapper.map(createOrderRequest)).thenReturn(createOrderDto);
+        when(authService.canAccessCustomerData(createOrderDto.customerId())).thenReturn(true);
         when(orderService.createOrder(createOrderDto)).thenReturn(orderDto);
         when(orderDtoToResponseMapper.map(orderDto)).thenReturn(orderResponse);
 
@@ -62,6 +63,31 @@ class OrderControllerUT {
             assertThat(orderResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
             assertThat(orderResponseEntity.getBody()).isNotNull().isEqualTo(orderResponse);
         });
+
+        verify(createOrderRequestToDtoMapper).map(createOrderRequest);
+        verify(authService).canAccessCustomerData(createOrderDto.customerId());
+        verify(orderService).createOrder(createOrderDto);
+        verify(orderDtoToResponseMapper).map(orderDto);
+    }
+
+    @Test
+    void test_createOrder_Unauthorized() {
+        // GIVEN
+        final CreateOrderRequest createOrderRequest = create(CreateOrderRequest.class);
+        final CreateOrderDto createOrderDto = create(CreateOrderDto.class);
+
+        when(createOrderRequestToDtoMapper.map(createOrderRequest)).thenReturn(createOrderDto);
+        when(authService.canAccessCustomerData(createOrderDto.customerId())).thenReturn(false);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderController.createOrder(createOrderRequest))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Access denied");
+
+        verify(createOrderRequestToDtoMapper).map(createOrderRequest);
+        verify(authService).canAccessCustomerData(createOrderDto.customerId());
+        verifyNoInteractions(orderService);
+        verifyNoInteractions(orderDtoToResponseMapper);
     }
 
     @Test
@@ -73,6 +99,7 @@ class OrderControllerUT {
         final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
         final List<OrderResponse> orderResponses = ofList(OrderResponse.class).size(SIZE).create();
 
+        when(authService.canAccessCustomerData(customerId)).thenReturn(true);
         when(orderService.getOrders(customerId, fromDate, toDate)).thenReturn(orderDtos);
         when(orderDtoToResponseMapper.map(orderDtos)).thenReturn(orderResponses);
 
@@ -84,6 +111,28 @@ class OrderControllerUT {
             assertThat(orderResponse.getStatusCode().is2xxSuccessful()).isTrue();
             assertThat(orderResponse.getBody()).isNotNull().isEqualTo(orderResponses);
         });
+        verify(authService).canAccessCustomerData(customerId);
+        verify(orderService).getOrders(customerId, fromDate, toDate);
+        verify(orderDtoToResponseMapper).map(orderDtos);
+    }
+
+    @Test
+    void test_listOrders_Unauthorized() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final Instant fromDate = Instant.now().minusSeconds(create(Long.class));
+        final Instant toDate = Instant.now();
+
+        when(authService.canAccessCustomerData(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderController.listOrders(customerId, fromDate, toDate))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Access denied");
+
+        verify(authService).canAccessCustomerData(customerId);
+        verifyNoInteractions(orderService);
+        verifyNoInteractions(orderDtoToResponseMapper);
     }
 
     @Test
@@ -97,6 +146,10 @@ class OrderControllerUT {
         assertThatThrownBy(() -> orderController.listOrders(customerId, fromDate, toDate))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("fromDate must be before toDate");
+
+        verifyNoInteractions(authService);
+        verifyNoInteractions(orderService);
+        verifyNoInteractions(orderDtoToResponseMapper);
     }
 
     @Test
@@ -104,6 +157,12 @@ class OrderControllerUT {
         // GIVEN
         final String customerId = create(String.class);
         final Instant toDate = Instant.now();
+        final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
+        final List<OrderResponse> orderResponses = ofList(OrderResponse.class).size(SIZE).create();
+
+        when(authService.canAccessCustomerData(customerId)).thenReturn(true);
+        when(orderService.getOrders(customerId, null, toDate)).thenReturn(orderDtos);
+        when(orderDtoToResponseMapper.map(orderDtos)).thenReturn(orderResponses);
 
         // WHEN
         final ResponseEntity<List<OrderResponse>> response = orderController.listOrders(customerId, null, toDate);
@@ -111,14 +170,23 @@ class OrderControllerUT {
         // THEN
         assertThat(response).isNotNull().satisfies(orderResponse -> {
             assertThat(orderResponse.getStatusCode().is2xxSuccessful()).isTrue();
-            assertThat(orderResponse.getBody()).isNotNull();
+            assertThat(orderResponse.getBody()).isNotNull().isEqualTo(orderResponses);
         });
+        verify(authService).canAccessCustomerData(customerId);
+        verify(orderService).getOrders(customerId, null, toDate);
+        verify(orderDtoToResponseMapper).map(orderDtos);
     }
 
     @Test
     void test_listOrders_nullDateRange_both() {
         // GIVEN
         final String customerId = create(String.class);
+        final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
+        final List<OrderResponse> orderResponses = ofList(OrderResponse.class).size(SIZE).create();
+
+        when(authService.canAccessCustomerData(customerId)).thenReturn(true);
+        when(orderService.getOrders(customerId, null, null)).thenReturn(orderDtos);
+        when(orderDtoToResponseMapper.map(orderDtos)).thenReturn(orderResponses);
 
         // WHEN
         final ResponseEntity<List<OrderResponse>> response = orderController.listOrders(customerId, null, null);
@@ -126,28 +194,21 @@ class OrderControllerUT {
         // THEN
         assertThat(response).isNotNull().satisfies(orderResponse -> {
             assertThat(orderResponse.getStatusCode().is2xxSuccessful()).isTrue();
-            assertThat(orderResponse.getBody()).isNotNull();
+            assertThat(orderResponse.getBody()).isNotNull().isEqualTo(orderResponses);
         });
-    }
-
-    @Test
-    void test_listOrders_ResponseStatusException() {
-        // GIVEN
-        final String customerId = create(String.class);
-        final Instant fromDate = Instant.now();
-        final Instant toDate = fromDate.minusSeconds(1); // Invalid range
-
-        // WHEN & THEN
-        assertThatThrownBy(() -> orderController.listOrders(customerId, fromDate, toDate))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("fromDate must be before toDate");
+        verify(authService).canAccessCustomerData(customerId);
+        verify(orderService).getOrders(customerId, null, null);
+        verify(orderDtoToResponseMapper).map(orderDtos);
     }
 
     @Test
     void test_cancelOrder() {
         // GIVEN
         final Long orderId = create(Long.class);
-        doNothing().when(orderService).cancelOrder(orderId);
+        final OrderDto orderDto = create(OrderDto.class);
+
+        when(orderService.getOrder(orderId)).thenReturn(orderDto);
+        when(authService.canAccessCustomerData(orderDto.customerId())).thenReturn(true);
 
         // WHEN
         final ResponseEntity<Void> response = orderController.cancelOrder(orderId);
@@ -155,7 +216,45 @@ class OrderControllerUT {
         // THEN
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        verify(orderService).getOrder(orderId);
+        verify(authService).canAccessCustomerData(orderDto.customerId());
         verify(orderService).cancelOrder(orderId);
+    }
+
+    @Test
+    void test_cancelOrder_OrderNotFound() {
+        // GIVEN
+        final Long orderId = create(Long.class);
+
+        when(orderService.getOrder(orderId)).thenReturn(null);
+
+        // WHEN
+        final ResponseEntity<Void> response = orderController.cancelOrder(orderId);
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode().value()).isEqualTo(404);
+        verifyNoMoreInteractions(orderService);
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void test_cancelOrder_Unauthorized() {
+        // GIVEN
+        final Long orderId = create(Long.class);
+        final OrderDto orderDto = create(OrderDto.class);
+
+        when(orderService.getOrder(orderId)).thenReturn(orderDto);
+        when(authService.canAccessCustomerData(orderDto.customerId())).thenReturn(false);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderController.cancelOrder(orderId))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Access denied");
+
+        verify(orderService).getOrder(orderId);
+        verify(authService).canAccessCustomerData(orderDto.customerId());
+        verifyNoMoreInteractions(orderService);
     }
 
     @Test
@@ -176,5 +275,7 @@ class OrderControllerUT {
             assertThat(orderResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
             assertThat(orderResponseEntity.getBody()).isNotNull().isEqualTo(orderResponse);
         });
+        verify(orderService).matchOrder(orderId);
+        verify(orderDtoToResponseMapper).map(matchedOrder);
     }
 }

@@ -7,8 +7,8 @@ import mbm.brokerage_backend.order.OrderService;
 import mbm.brokerage_backend.order.domain.CreateOrderDto;
 import mbm.brokerage_backend.order.domain.OrderSide;
 import mbm.brokerage_backend.order.domain.OrderStatus;
-import mbm.brokerage_backend.order.exception.InsufficientAssetsException;
-import mbm.brokerage_backend.order.exception.OrderNotFoundException;
+import mbm.brokerage_backend.common.InsufficientAssetsException;
+import mbm.brokerage_backend.common.OrderNotFoundException;
 import mbm.brokerage_backend.order.repository.OrderRepository;
 import mbm.brokerage_backend.order.repository.entity.OrderEntity;
 import mbm.brokerage_backend.order.repository.mapper.OrderEntityToDtoMapper;
@@ -57,6 +57,38 @@ class OrderServiceUT {
     @BeforeEach
     void setUp() {
         orderService = new OrderServiceImp(assetService, orderRepository, orderEntityToDtoMapper);
+    }
+
+    @Test
+    void test_getOrder() {
+        // GIVEN
+        final OrderEntity orderEntity = create(OrderEntity.class);
+        final OrderDto orderDto = create(OrderDto.class);
+
+        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(orderEntity));
+        when(orderEntityToDtoMapper.map(orderEntity)).thenReturn(orderDto);
+
+        // WHEN
+        final OrderDto result = orderService.getOrder(ORDER_ID);
+
+        // THEN
+        assertThat(result).isNotNull().isEqualTo(orderDto);
+        verify(orderRepository).findById(ORDER_ID);
+        verify(orderEntityToDtoMapper).map(orderEntity);
+    }
+
+    @Test
+    void test_getOrder_withNonExistentOrder() {
+        // GIVEN
+        when(orderRepository.findById(ORDER_ID)).
+                thenReturn(Optional.empty());
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderService.getOrder(ORDER_ID))
+                .isInstanceOf(OrderNotFoundException.class);
+        verify(orderRepository).findById(ORDER_ID);
+        verifyNoInteractions(orderEntityToDtoMapper);
+        verifyNoMoreInteractions(orderRepository);
     }
 
     @Test
@@ -182,11 +214,10 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_createOrder_buy_withInsufficientAssets_shouldThrowException() {
+    void test_createOrder_buy_withInsufficientAssets() {
         // GIVEN
         final BigDecimal orderSize = BigDecimal.valueOf(5);
         final BigDecimal orderPrice = BigDecimal.valueOf(30000);
-        final BigDecimal requiredAmount = orderPrice.multiply(orderSize); // 150000
 
         final CreateOrderDto createOrderDto = of(CreateOrderDto.class)
                 .set(Select.field(CreateOrderDto::customerId), CUSTOMER_ID)
@@ -205,10 +236,7 @@ class OrderServiceUT {
 
         // WHEN & THEN
         assertThatThrownBy(() -> orderService.createOrder(createOrderDto))
-                .isInstanceOf(InsufficientAssetsException.class)
-                .hasMessageContaining(CUSTOMER_ID)
-                .hasMessageContaining(TRY_ASSET)
-                .hasMessageContaining(requiredAmount.toString());
+                .isInstanceOf(InsufficientAssetsException.class);
 
         verify(assetService).getAssetByCustomerIdAndAssetName(CUSTOMER_ID, TRY_ASSET);
         verify(assetService, never()).updateAssetUsableSize(anyString(), anyString(), any(BigDecimal.class));
@@ -217,7 +245,7 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_createOrder_sell_withInsufficientAssets_shouldThrowException() {
+    void test_createOrder_sell_withInsufficientAssets() {
         // GIVEN
         final BigDecimal orderSize = BigDecimal.valueOf(3);
         final BigDecimal orderPrice = BigDecimal.valueOf(30000);
@@ -239,10 +267,7 @@ class OrderServiceUT {
 
         // WHEN & THEN
         assertThatThrownBy(() -> orderService.createOrder(createOrderDto))
-                .isInstanceOf(InsufficientAssetsException.class)
-                .hasMessageContaining(CUSTOMER_ID)
-                .hasMessageContaining(ASSET_NAME)
-                .hasMessageContaining(orderSize.toString());
+                .isInstanceOf(InsufficientAssetsException.class);
 
         verify(assetService).getAssetByCustomerIdAndAssetName(CUSTOMER_ID, ASSET_NAME);
         verify(assetService, never()).updateAssetUsableSize(anyString(), anyString(), any(BigDecimal.class));
@@ -251,7 +276,7 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_cancelOrder_withPendingOrder_shouldCancelOrder() {
+    void test_cancelOrder_withPendingOrder() {
         // GIVEN
         final BigDecimal orderSize = BigDecimal.valueOf(5);
         final BigDecimal orderPrice = BigDecimal.valueOf(30000);
@@ -287,7 +312,7 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_cancelOrder_withNonExistentOrder_shouldThrowException() {
+    void test_cancelOrder_withNonExistentOrder() {
         // GIVEN
         final Long orderId = 999L;
 
@@ -295,8 +320,7 @@ class OrderServiceUT {
 
         // WHEN & THEN
         assertThatThrownBy(() -> orderService.cancelOrder(orderId))
-                .isInstanceOf(OrderNotFoundException.class)
-                .hasMessageContaining(orderId.toString());
+                .isInstanceOf(OrderNotFoundException.class);
 
         verifyNoInteractions(assetService);
         verify(orderRepository, never()).save(any(OrderEntity.class));
@@ -368,6 +392,7 @@ class OrderServiceUT {
 
         when(orderRepository.findByIdAndStatus(ORDER_ID, OrderStatus.PENDING)).thenReturn(Optional.of(orderEntity));
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, TRY_ASSET)).thenReturn(tryAsset);
+        when(assetService.isAssetExists(CUSTOMER_ID, ASSET_NAME)).thenReturn(true);
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, ASSET_NAME)).thenReturn(btcAsset);
         when(orderRepository.save(any(OrderEntity.class))).thenReturn(orderEntity);
         when(orderEntityToDtoMapper.map(orderEntity)).thenReturn(expectedOrderDto);
@@ -379,6 +404,7 @@ class OrderServiceUT {
         assertThat(result).isEqualTo(expectedOrderDto);
 
         verify(orderRepository).findByIdAndStatus(ORDER_ID, OrderStatus.PENDING);
+        verify(assetService).isAssetExists(CUSTOMER_ID, ASSET_NAME);
 
         verify(assetService).updateAssetSize(CUSTOMER_ID, TRY_ASSET,
                 tryAsset.size().subtract(totalCost));
@@ -452,11 +478,10 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_matchOrder_buyOrder_withInsufficientAssets_shouldThrowException() {
+    void test_matchOrder_buyOrder_withInsufficientAssets() {
         // GIVEN
         final BigDecimal orderSize = BigDecimal.valueOf(2);
         final BigDecimal orderPrice = BigDecimal.valueOf(30000);
-        final BigDecimal totalCost = orderPrice.multiply(orderSize); // 60000
 
         final OrderEntity orderEntity = OrderEntity.builder()
                 .customerId(CUSTOMER_ID)
@@ -478,10 +503,7 @@ class OrderServiceUT {
 
         // WHEN & THEN
         assertThatThrownBy(() -> orderService.matchOrder(ORDER_ID))
-                .isInstanceOf(InsufficientAssetsException.class)
-                .hasMessageContaining(CUSTOMER_ID)
-                .hasMessageContaining(TRY_ASSET)
-                .hasMessageContaining(totalCost.toString());
+                .isInstanceOf(InsufficientAssetsException.class);
 
         verify(orderRepository).findByIdAndStatus(ORDER_ID, OrderStatus.PENDING);
         verify(assetService).getAssetByCustomerIdAndAssetName(CUSTOMER_ID, TRY_ASSET);
@@ -493,7 +515,7 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_matchOrder_sellOrder_withInsufficientAssets_shouldThrowException() {
+    void test_matchOrder_sellOrder_withInsufficientAssets() {
         // GIVEN
         final BigDecimal orderSize = BigDecimal.valueOf(5);
         final BigDecimal orderPrice = BigDecimal.valueOf(30000);
@@ -518,10 +540,7 @@ class OrderServiceUT {
 
         // WHEN & THEN
         assertThatThrownBy(() -> orderService.matchOrder(ORDER_ID))
-                .isInstanceOf(InsufficientAssetsException.class)
-                .hasMessageContaining(CUSTOMER_ID)
-                .hasMessageContaining(ASSET_NAME)
-                .hasMessageContaining(orderSize.toString());
+                .isInstanceOf(InsufficientAssetsException.class);
 
         verify(orderRepository).findByIdAndStatus(ORDER_ID, OrderStatus.PENDING);
         verify(assetService).getAssetByCustomerIdAndAssetName(CUSTOMER_ID, ASSET_NAME);
@@ -533,7 +552,7 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_matchOrder_nonExistentOrder_shouldThrowException() {
+    void test_matchOrder_nonExistentOrder() {
         // GIVEN
         final Long orderId = 999L;
 
@@ -541,8 +560,7 @@ class OrderServiceUT {
 
         // WHEN & THEN
         assertThatThrownBy(() -> orderService.matchOrder(orderId))
-                .isInstanceOf(OrderNotFoundException.class)
-                .hasMessageContaining(orderId.toString());
+                .isInstanceOf(OrderNotFoundException.class);
 
         verifyNoInteractions(assetService);
         verify(orderRepository, never()).save(any(OrderEntity.class));

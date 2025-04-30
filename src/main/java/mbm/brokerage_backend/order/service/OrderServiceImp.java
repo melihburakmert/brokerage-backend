@@ -7,8 +7,8 @@ import mbm.brokerage_backend.order.OrderService;
 import mbm.brokerage_backend.order.domain.CreateOrderDto;
 import mbm.brokerage_backend.order.domain.OrderSide;
 import mbm.brokerage_backend.order.domain.OrderStatus;
-import mbm.brokerage_backend.order.exception.InsufficientAssetsException;
-import mbm.brokerage_backend.order.exception.OrderNotFoundException;
+import mbm.brokerage_backend.common.InsufficientAssetsException;
+import mbm.brokerage_backend.common.OrderNotFoundException;
 import mbm.brokerage_backend.order.repository.OrderRepository;
 import mbm.brokerage_backend.order.repository.entity.OrderEntity;
 import mbm.brokerage_backend.order.repository.mapper.OrderEntityToDtoMapper;
@@ -32,6 +32,13 @@ public class OrderServiceImp implements OrderService {
         this.assetService = assetService;
         this.orderRepository = orderRepository;
         this.orderEntityToDtoMapper = orderEntityToDtoMapper;
+    }
+
+    @Override
+    public OrderDto getOrder(final Long orderId) {
+        final OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+        return orderEntityToDtoMapper.map(orderEntity);
     }
 
     @Override
@@ -102,7 +109,13 @@ public class OrderServiceImp implements OrderService {
 
     private void matchBuyOrder(final String customerId, final String assetName, final BigDecimal orderSize, final BigDecimal orderPrice) {
         final AssetDto tryAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, TRY);
-        final AssetDto boughtAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+
+        final AssetDto boughtAsset;
+        if (!assetService.isAssetExists(customerId, assetName)) {
+            boughtAsset = assetService.initializeAsset(customerId, assetName);
+        } else {
+            boughtAsset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
+        }
 
         final BigDecimal totalCost = orderPrice.multiply(orderSize);
 

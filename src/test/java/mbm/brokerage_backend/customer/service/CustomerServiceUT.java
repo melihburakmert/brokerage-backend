@@ -46,12 +46,12 @@ class CustomerServiceUT {
 
         // THEN
         final ArgumentCaptor<CustomerEntity> captor = ArgumentCaptor.forClass(CustomerEntity.class);
-        customerRepository.save(captor.capture());
+        verify(customerRepository).save(captor.capture());
         final CustomerEntity customer = captor.getValue();
         assertThat(customer.getUsername()).isEqualTo(username);
         assertThat(customer.getPassword()).isEqualTo(encodedPassword);
         assertThat(customer.getRole()).isEqualTo(Role.CUSTOMER);
-        verify(passwordEncoder).encode(encodedPassword);
+        verify(passwordEncoder).encode(password);
     }
 
     @Test

@@ -12,4 +12,6 @@ public interface AssetRepository extends JpaRepository<AssetEntity, String> {
     List<AssetEntity> findByCustomerId(String customerId);
 
     Optional<AssetEntity> findByCustomerIdAndAssetName(String customerId, String assetName);
+
+    boolean existsByCustomerIdAndAssetName(String customerId, String assetName);
 }
