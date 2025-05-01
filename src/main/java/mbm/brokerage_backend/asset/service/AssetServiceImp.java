@@ -2,10 +2,13 @@ package mbm.brokerage_backend.asset.service;
 
 import mbm.brokerage_backend.asset.AssetDto;
 import mbm.brokerage_backend.asset.AssetService;
-import mbm.brokerage_backend.asset.exception.AssetNotFoundException;
+import mbm.brokerage_backend.asset.domain.SetBalanceDto;
+import mbm.brokerage_backend.common.AssetNotFoundException;
 import mbm.brokerage_backend.asset.repository.AssetRepository;
 import mbm.brokerage_backend.asset.repository.entity.AssetEntity;
 import mbm.brokerage_backend.asset.repository.mapper.AssetEntityToDtoMapper;
+import mbm.brokerage_backend.common.CustomerNotFoundException;
+import mbm.brokerage_backend.customer.CustomerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,24 +18,44 @@ import java.util.List;
 @Service
 public class AssetServiceImp implements AssetService {
 
+    private static final String TRY_ASSET = "TRY";
+
     private final AssetRepository assetRepository;
     private final AssetEntityToDtoMapper assetEntityToDtoMapper;
+    private final CustomerService customerService;
 
     public AssetServiceImp(
             final AssetRepository assetRepository,
-            final AssetEntityToDtoMapper assetEntityToDtoMapper) {
+            final AssetEntityToDtoMapper assetEntityToDtoMapper,
+            final CustomerService customerService) {
         this.assetRepository = assetRepository;
         this.assetEntityToDtoMapper = assetEntityToDtoMapper;
+        this.customerService = customerService;
+    }
+
+    @Override
+    @Transactional
+    public AssetDto initializeAsset(final String customerId, final String assetName) {
+        validateCustomerExists(customerId);
+
+        final AssetEntity assetEntity = buildAsset(customerId, assetName);
+
+        final AssetEntity savedAsset = assetRepository.save(assetEntity);
+        return assetEntityToDtoMapper.map(savedAsset);
     }
 
     @Override
     public List<AssetDto> getAssets(final String customerId) {
+        validateCustomerExists(customerId);
+
         final List<AssetEntity> assetEntities = assetRepository.findByCustomerId(customerId);
         return assetEntityToDtoMapper.map(assetEntities);
     }
 
     @Override
     public AssetDto getAssetByCustomerIdAndAssetName(final String customerId, final String assetName) {
+        validateCustomerExists(customerId);
+
         final AssetEntity assetEntity = getAssetEntity(customerId, assetName);
         return assetEntityToDtoMapper.map(assetEntity);
     }
@@ -40,6 +63,8 @@ public class AssetServiceImp implements AssetService {
     @Override
     @Transactional
     public void updateAssetSize(final String customerId, final String assetName, final BigDecimal newSize) {
+        validateCustomerExists(customerId);
+
         final AssetEntity asset = getAssetEntity(customerId, assetName);
 
         asset.setSize(newSize);
@@ -49,6 +74,8 @@ public class AssetServiceImp implements AssetService {
     @Override
     @Transactional
     public void updateAssetUsableSize(final String customerId, final String assetName, final BigDecimal newUsableSize) {
+        validateCustomerExists(customerId);
+
         final AssetEntity asset = getAssetEntity(customerId, assetName);
 
         asset.setUsableSize(newUsableSize);
@@ -58,6 +85,8 @@ public class AssetServiceImp implements AssetService {
     @Override
     @Transactional
     public void updateAssetSizeAndUsableSize(final String customerId, final String assetName, final BigDecimal newSize, final BigDecimal newUsableSize) {
+        validateCustomerExists(customerId);
+
         final AssetEntity asset = getAssetEntity(customerId, assetName);
 
         asset.setSize(newSize);
@@ -65,8 +94,54 @@ public class AssetServiceImp implements AssetService {
         assetRepository.save(asset);
     }
 
+    @Override
+    public boolean isAssetExists(final String customerId, final String assetName) {
+        validateCustomerExists(customerId);
+
+        return isExistsByCustomerIdAndAssetName(customerId, assetName);
+    }
+
+    @Override
+    @Transactional
+    public AssetDto setBalance(final SetBalanceDto setBalanceDto) {
+        final String customerId = setBalanceDto.customerId();
+        validateCustomerExists(customerId);
+
+        final AssetEntity asset;
+        if (!isExistsByCustomerIdAndAssetName(customerId, TRY_ASSET)) {
+            asset = buildAsset(customerId, TRY_ASSET);
+        }
+        else {
+            asset = getAssetEntity(customerId, TRY_ASSET);
+        }
+        asset.setSize(setBalanceDto.balance());
+        asset.setUsableSize(setBalanceDto.balance());
+
+        final AssetEntity savedAsset = assetRepository.save(asset);
+        return assetEntityToDtoMapper.map(savedAsset);
+    }
+
     private AssetEntity getAssetEntity(final String customerId, final String assetName) {
         return assetRepository.findByCustomerIdAndAssetName(customerId, assetName)
                 .orElseThrow(() -> new AssetNotFoundException(customerId, assetName));
+    }
+
+    private AssetEntity buildAsset(final String customerId, final String assetName) {
+        return AssetEntity.builder()
+                .customerId(customerId)
+                .assetName(assetName)
+                .size(BigDecimal.ZERO)
+                .usableSize(BigDecimal.ZERO)
+                .build();
+    }
+
+    private void validateCustomerExists(final String customerId) {
+        if (!customerService.existsByUsername(customerId)) {
+            throw new CustomerNotFoundException(customerId);
+        }
+    }
+
+    private boolean isExistsByCustomerIdAndAssetName(final String customerId, final String assetName) {
+        return assetRepository.existsByCustomerIdAndAssetName(customerId, assetName);
     }
 }

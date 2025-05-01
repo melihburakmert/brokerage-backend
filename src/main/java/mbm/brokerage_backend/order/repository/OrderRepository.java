@@ -13,5 +13,7 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
     List<OrderEntity> findByCustomerIdAndCreateDateBetween(String customerId, Instant fromDate, Instant toDate);
 
+    List<OrderEntity> findByCustomerId(String customerId);
+
     Optional<OrderEntity> findByIdAndStatus(Long id, OrderStatus status);
 }

@@ -23,7 +23,7 @@ paths:
         - name: customerId
           in: query
           required: true
-          description: The unique identifier of the customer
+          description: The unique identifier(username) of the customer
           schema:
             type: string
       responses:
@@ -40,7 +40,46 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+
+  /api/admin/assets/balance:
+    post:
+      summary: Set balance for a customer (admin only)
+      description: Sets the TRY balance for a specified customer
+      tags:
+        - assets
+      operationId: setBalance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetBalanceRequest'
+      responses:
+        201:
+          description: Balance set successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        400:
+          description: Invalid request parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - Admin privileges required
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+        default:
+          description: default error response
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -77,35 +116,29 @@ components:
           description: Amount of the asset available for trading (not reserved in pending orders)
           example: 75.0
 
-    ErrorResponse:
+    SetBalanceRequest:
       type: object
       required:
-        - status
-        - message
+        - customerId
+        - balance
       properties:
-        status:
-          type: integer
-          format: int32
-          description: HTTP status code
-          example: 400
-        message:
+        customerId:
           type: string
-          description: Error message
-          example: "Invalid customerId provided"
-        details:
-          type: string
-          description: Detailed error information
-          example: "Parameter 'customerId' must be a valid UUID"
-        timestamp:
-          type: string
-          format: date-time
-          description: Time when the error occurred
-          example: "2025-04-26T10:30:00Z"
+          description: The unique identifier(username) of the customer
+          example: "customer123"
+        balance:
+          type: number
+          format: double
+          description: The TRY balance to set for the customer
+          example: 10000.0
+          minimum: 0
 
   securitySchemes:
-    basicAuth:
+    bearerAuth:
       type: http
-      scheme: basic
+      scheme: bearer
+      bearerFormat: JWT
 
 security:
-  - basicAuth: []
+  - bearerAuth: []
+

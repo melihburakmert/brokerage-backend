@@ -4,7 +4,42 @@ databaseChangeLog:
       author: melihburakmert
       comment: Create initial schema for brokerage application
       changes:
-        # Create Asset table
+        - createTable:
+            tableName: customer
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: username
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(10)
+                  constraints:
+                    nullable: false
+            remarks: Stores customer information
+
+        - createIndex:
+            indexName: idx_customer_username
+            tableName: customer
+            columns:
+              - column:
+                  name: username
+            unique: true
+
         - createTable:
             tableName: asset
             columns:
@@ -41,7 +76,6 @@ databaseChangeLog:
             columnNames: customer_id, asset_name
             constraintName: uk_customer_asset
 
-        # Create Order table
         - createTable:
             tableName: orders  # 'order' is a reserved keyword in SQL, so using 'orders'
             columns:
@@ -111,3 +145,21 @@ databaseChangeLog:
             columns:
               - column:
                   name: status
+
+        - addForeignKeyConstraint:
+            baseTableName: asset
+            baseColumnNames: customer_id
+            constraintName: fk_asset_customer
+            referencedTableName: customer
+            referencedColumnNames: username
+            onDelete: CASCADE
+            onUpdate: RESTRICT
+
+        - addForeignKeyConstraint:
+            baseTableName: orders
+            baseColumnNames: customer_id
+            constraintName: fk_order_customer
+            referencedTableName: customer
+            referencedColumnNames: username
+            onDelete: CASCADE
+            onUpdate: RESTRICT

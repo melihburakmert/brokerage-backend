@@ -23,7 +23,7 @@ paths:
         - name: customerId
           in: query
           required: true
-          description: The unique identifier of the customer
+          description: The unique identifier(username) of the customer
           schema:
             type: string
         - name: fromDate
@@ -54,7 +54,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
 
     post:
       summary: Create a new order
@@ -80,13 +80,13 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
         default:
           description: default error response
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
 
   /api/orders/{orderId}:
     delete:
@@ -111,19 +111,19 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
         404:
           description: Not Found - Order does not exist
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
         default:
           description: default error response
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
 
   /api/admin/orders/{orderId}/match:
     post:
@@ -152,19 +152,19 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
         404:
           description: Not Found - Order does not exist
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
         default:
           description: default error response
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -179,7 +179,7 @@ components:
       properties:
         customerId:
           type: string
-          description: The unique identifier of the customer
+          description: The unique identifier(username) of the customer
           example: "customer123"
         assetName:
           type: string
@@ -254,35 +254,11 @@ components:
           description: When the order was created
           example: "2025-04-26T10:30:00Z"
 
-    ErrorResponse:
-      type: object
-      required:
-        - status
-        - message
-      properties:
-        status:
-          type: integer
-          format: int32
-          description: HTTP status code
-          example: 400
-        message:
-          type: string
-          description: Error message
-          example: "Insufficient assets for order"
-        details:
-          type: string
-          description: Detailed error information
-          example: "Customer does not have enough TRY to place this buy order"
-        timestamp:
-          type: string
-          format: date-time
-          description: Time when the error occurred
-          example: "2025-04-26T10:30:00Z"
-
   securitySchemes:
-    basicAuth:
+    bearerAuth:
       type: http
-      scheme: basic
+      scheme: bearer
+      bearerFormat: JWT
 
 security:
-  - basicAuth: []
+  - bearerAuth: []

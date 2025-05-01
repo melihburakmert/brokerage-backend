@@ -1,0 +1,124 @@
+openapi: 3.0.3
+info:
+  title: Brokerage Authentication API
+  description: API for user authentication and registration in a brokerage system
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: auth
+    description: Authentication operations
+
+paths:
+  /api/auth/login:
+    post:
+      summary: Authenticate a user
+      description: Validates credentials and returns a JWT token if successful
+      tags:
+        - auth
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationRequest'
+      responses:
+        200:
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        401:
+          description: Invalid credentials
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+        default:
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      description: Creates a new user account with CUSTOMER role and returns a JWT token
+      tags:
+        - auth
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        201:
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        409:
+          description: Username already exists
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+        default:
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AuthenticationRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: User's unique identifier
+          example: "john.doe"
+        password:
+          type: string
+          format: password
+          description: User's password
+          example: "securePassword123"
+
+    RegistrationRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: Desired username (must be unique)
+          example: "john.doe"
+        password:
+          type: string
+          format: password
+          description: Desired password
+          example: "securePassword123"
+
+    AuthenticationResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: JWT token for authentication
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqb2huLmRvZSIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MzI1NDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
