@@ -81,7 +81,7 @@ public class AssetServiceImp implements AssetService {
 
     private AssetEntity getAssetEntity(final String customerId, final String assetName) {
         return assetRepository.findByCustomerIdAndAssetName(customerId, assetName)
-                .orElseThrow(() -> new AssetNotFoundException(assetName));
+                .orElseThrow(() -> new AssetNotFoundException(customerId, assetName));
     }
 
     private AssetEntity buildAsset(final String customerId, final String assetName) {

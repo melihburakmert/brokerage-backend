@@ -30,9 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.instancio.Instancio.create;
 import static org.instancio.Instancio.of;
 import static org.instancio.Instancio.ofList;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -108,6 +106,62 @@ class OrderServiceUT {
         // THEN
         assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
         verify(orderRepository).findByCustomerIdAndCreateDateBetween(CUSTOMER_ID, fromDate, toDate);
+        verify(orderEntityToDtoMapper).map(orderEntities);
+    }
+
+    @Test
+    void test_getOrders_withNullDates() {
+        // GIVEN
+        final List<OrderEntity> orderEntities = ofList(OrderEntity.class).size(SIZE).create();
+        final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
+
+        when(orderRepository.findByCustomerId(CUSTOMER_ID)).thenReturn(orderEntities);
+        when(orderEntityToDtoMapper.map(orderEntities)).thenReturn(orderDtos);
+
+        // WHEN
+        final List<OrderDto> result = orderService.getOrders(CUSTOMER_ID, null, null);
+
+        // THEN
+        assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
+        verify(orderRepository).findByCustomerId(CUSTOMER_ID);
+        verify(orderEntityToDtoMapper).map(orderEntities);
+    }
+
+    @Test
+    void test_getOrders_withNullFromDate() {
+        // GIVEN
+        final Instant toDate = Instant.now();
+        final List<OrderEntity> orderEntities = ofList(OrderEntity.class).size(SIZE).create();
+        final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
+
+        when(orderRepository.findByCustomerIdAndCreateDateBetween(CUSTOMER_ID, Instant.EPOCH, toDate)).thenReturn(orderEntities);
+        when(orderEntityToDtoMapper.map(orderEntities)).thenReturn(orderDtos);
+
+        // WHEN
+        final List<OrderDto> result = orderService.getOrders(CUSTOMER_ID, null, toDate);
+
+        // THEN
+        assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
+        verify(orderRepository).findByCustomerIdAndCreateDateBetween(CUSTOMER_ID, Instant.EPOCH, toDate);
+        verify(orderEntityToDtoMapper).map(orderEntities);
+    }
+
+    @Test
+    void test_getOrders_withNullToDate() {
+        // GIVEN
+        final Instant fromDate = Instant.now().minusSeconds(create(Long.class));
+        final List<OrderEntity> orderEntities = ofList(OrderEntity.class).size(SIZE).create();
+        final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
+
+        when(orderRepository.findByCustomerIdAndCreateDateBetween(eq(CUSTOMER_ID), eq(fromDate), any(Instant.class))).thenReturn(orderEntities);
+        when(orderEntityToDtoMapper.map(orderEntities)).thenReturn(orderDtos);
+
+        // WHEN
+        final List<OrderDto> result = orderService.getOrders(CUSTOMER_ID, fromDate, null);
+
+        // THEN
+        assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
+        verify(orderRepository).findByCustomerIdAndCreateDateBetween(eq(CUSTOMER_ID), eq(fromDate), any(Instant.class));
         verify(orderEntityToDtoMapper).map(orderEntities);
     }
 
@@ -214,7 +268,7 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_createOrder_buy_withInsufficientAssets() {
+    void test_createOrder_buy_withInsufficientUsableAssets() {
         // GIVEN
         final BigDecimal orderSize = BigDecimal.valueOf(5);
         final BigDecimal orderPrice = BigDecimal.valueOf(30000);
@@ -228,8 +282,8 @@ class OrderServiceUT {
                 .create();
 
         final AssetDto tryAsset = of(AssetDto.class)
-                .set(Select.field(AssetDto::size), BigDecimal.valueOf(100000)) // Not enough funds
-                .set(Select.field(AssetDto::usableSize), BigDecimal.valueOf(80000))
+                .set(Select.field(AssetDto::size), BigDecimal.valueOf(200000)) // Enough total funds
+                .set(Select.field(AssetDto::usableSize), BigDecimal.valueOf(100000)) // Not enough usable funds
                 .create();
 
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, TRY_ASSET)).thenReturn(tryAsset);
@@ -245,7 +299,7 @@ class OrderServiceUT {
     }
 
     @Test
-    void test_createOrder_sell_withInsufficientAssets() {
+    void test_createOrder_sell_withInsufficientUsableAssets() {
         // GIVEN
         final BigDecimal orderSize = BigDecimal.valueOf(3);
         final BigDecimal orderPrice = BigDecimal.valueOf(30000);
@@ -259,8 +313,8 @@ class OrderServiceUT {
                 .create();
 
         final AssetDto btcAsset = of(AssetDto.class)
-                .set(Select.field(AssetDto::size), BigDecimal.valueOf(2)) // Not enough BTC
-                .set(Select.field(AssetDto::usableSize), BigDecimal.valueOf(2))
+                .set(Select.field(AssetDto::size), BigDecimal.valueOf(5)) // Enough total assets
+                .set(Select.field(AssetDto::usableSize), BigDecimal.valueOf(2)) // Not enough usable assets
                 .create();
 
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, ASSET_NAME)).thenReturn(btcAsset);

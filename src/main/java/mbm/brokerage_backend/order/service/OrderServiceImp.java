@@ -43,7 +43,8 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     public List<OrderDto> getOrders(final String customerId, final Instant fromDate, final Instant toDate) {
-        final List<OrderEntity> orderEntities = orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, toDate);
+        final List<OrderEntity> orderEntities = getOrderEntities(customerId, fromDate, toDate);
+
         return orderEntityToDtoMapper.map(orderEntities);
     }
 
@@ -56,7 +57,7 @@ public class OrderServiceImp implements OrderService {
 
         final AssetDto asset = assetService.getAssetByCustomerIdAndAssetName(customerId, assetName);
 
-        validateSufficientAssetSize(asset, requiredAmount, customerId, assetName);
+        validateSufficientUsableAssetSize(asset, requiredAmount, customerId, assetName);
 
         final BigDecimal newUsableSize = asset.usableSize().subtract(requiredAmount);
         assetService.updateAssetUsableSize(customerId, assetName, newUsableSize);
@@ -165,6 +166,27 @@ public class OrderServiceImp implements OrderService {
     private void validateSufficientAssetSize(final AssetDto asset, final BigDecimal required, final String customerId, final String assetName) {
         if (asset.size().compareTo(required) < 0) {
             throw new InsufficientAssetsException(customerId, assetName, required, asset.size());
+        }
+    }
+
+    private void validateSufficientUsableAssetSize(final AssetDto asset, final BigDecimal required, final String customerId, final String assetName) {
+        if (asset.usableSize().compareTo(required) < 0) {
+            throw new InsufficientAssetsException(customerId, assetName, required, asset.usableSize());
+        }
+    }
+
+    private List<OrderEntity> getOrderEntities(final String customerId, final Instant fromDate, final Instant toDate) {
+        // TODO: Add criteria api or specification to handle this later
+        if (fromDate != null && toDate != null) {
+            return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, toDate);
+        }
+        else if (fromDate == null && toDate == null) {
+            return orderRepository.findByCustomerId(customerId);
+        }
+        else if (fromDate != null) {
+            return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, Instant.now());
+        } else {
+            return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, Instant.EPOCH, toDate);
         }
     }
 }
