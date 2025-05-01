@@ -44,8 +44,8 @@ paths:
 
   /api/admin/assets/balance:
     post:
-      summary: Set balance for a customer
-      description: Sets the TRY balance for a specified customer (admin only)
+      summary: Set balance for a customer (admin only)
+      description: Sets the TRY balance for a specified customer
       tags:
         - assets
       operationId: setBalance

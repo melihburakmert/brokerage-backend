@@ -7,6 +7,8 @@ import mbm.brokerage_backend.common.AssetNotFoundException;
 import mbm.brokerage_backend.asset.repository.AssetRepository;
 import mbm.brokerage_backend.asset.repository.entity.AssetEntity;
 import mbm.brokerage_backend.asset.repository.mapper.AssetEntityToDtoMapper;
+import mbm.brokerage_backend.common.CustomerNotFoundException;
+import mbm.brokerage_backend.customer.CustomerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,12 +20,15 @@ public class AssetServiceImp implements AssetService {
 
     private final AssetRepository assetRepository;
     private final AssetEntityToDtoMapper assetEntityToDtoMapper;
+    private final CustomerService customerService;
 
     public AssetServiceImp(
             final AssetRepository assetRepository,
-            final AssetEntityToDtoMapper assetEntityToDtoMapper) {
+            final AssetEntityToDtoMapper assetEntityToDtoMapper,
+            final CustomerService customerService) {
         this.assetRepository = assetRepository;
         this.assetEntityToDtoMapper = assetEntityToDtoMapper;
+        this.customerService = customerService;
     }
 
     @Override
@@ -84,8 +89,11 @@ public class AssetServiceImp implements AssetService {
     @Transactional
     public AssetDto setBalance(final SetBalanceDto setBalanceDto) {
         final String customerId = setBalanceDto.customerId();
-        final String assetName = "TRY";
+        if (!customerService.existsByUsername(customerId)) {
+            throw new CustomerNotFoundException(customerId);
+        }
 
+        final String assetName = "TRY";
         final AssetEntity asset;
         if (!isAssetExists(customerId, assetName)) {
             asset = buildAsset(customerId, assetName);
