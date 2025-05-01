@@ -6,7 +6,7 @@ import org.springframework.modulith.core.ApplicationModules;
 import org.springframework.modulith.docs.Documenter;
 
 @SpringBootTest
-class BrokerageBackendApplicationTests {
+class BrokerageBackendApplicationIT {
 
 	@Test
 	void contextLoads() {
