@@ -23,7 +23,7 @@ paths:
         - name: customerId
           in: query
           required: true
-          description: The unique identifier(username) of the customer
+          description: The unique identifier of the customer
           schema:
             type: string
         - name: fromDate
@@ -49,6 +49,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/OrderResponse'
+        404:
+          description: Customer not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
         default:
           description: default error response
           content:

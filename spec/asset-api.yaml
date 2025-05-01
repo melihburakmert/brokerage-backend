@@ -35,6 +35,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AssetResponse'
+        404:
+          description: Customer not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
         default:
           description: default error response
           content:
