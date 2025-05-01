@@ -19,6 +19,7 @@ import java.util.List;
 public class AssetServiceImp implements AssetService {
 
     private static final String TRY_ASSET = "TRY";
+
     private final AssetRepository assetRepository;
     private final AssetEntityToDtoMapper assetEntityToDtoMapper;
     private final CustomerService customerService;

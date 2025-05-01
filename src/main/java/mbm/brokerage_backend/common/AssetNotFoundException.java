@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus;
 
 public class AssetNotFoundException extends RuntimeException {
 
-    private static final String DETAILS = "Asset '%s' not found for customer %s.";
+    private static final String DETAILS = "Asset '%s' not found for customer %s";
     private static final String MESSAGE = "Asset not found";
     private static final HttpStatus STATUS = HttpStatus.NOT_FOUND;
 

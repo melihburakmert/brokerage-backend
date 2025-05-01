@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus;
 
 public class OrderNotFoundException extends RuntimeException {
 
-    private static final String DETAILS = "Order with id %d not found.";
+    private static final String DETAILS = "Order with id %d not found";
     private static final String MESSAGE = "Order not found";
     private static final HttpStatus STATUS = HttpStatus.NOT_FOUND;
 
