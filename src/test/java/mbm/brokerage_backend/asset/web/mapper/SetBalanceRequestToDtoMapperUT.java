@@ -2,11 +2,11 @@ package mbm.brokerage_backend.asset.web.mapper;
 
 import mbm.brokerage_backend.asset.domain.SetBalanceDto;
 import mbm.brokerage_backend.asset.web.model.SetBalanceRequest;
-import org.instancio.Instancio;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.instancio.Instancio.create;
 
 class SetBalanceRequestToDtoMapperUT {
 
@@ -20,7 +20,7 @@ class SetBalanceRequestToDtoMapperUT {
     @Test
     void test_map() {
         // GIVEN
-        final SetBalanceRequest request = Instancio.create(SetBalanceRequest.class);
+        final SetBalanceRequest request = create(SetBalanceRequest.class);
         
         // WHEN
         final SetBalanceDto result = mapper.map(request);
