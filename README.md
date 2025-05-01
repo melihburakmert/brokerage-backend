@@ -171,6 +171,7 @@ The Brokerage Backend API is built using Spring Boot and provides the following 
 
 1. Visit `http://localhost:8080/swagger-ui/index.html` to access the Swagger UI for API documentation.
 2. Use the API endpoints as described above to interact with the system.
-3. For authentication, use the `/api/auth/login` endpoint to obtain a JWT token.
-4. You can use 'Authorize' button in Swagger UI to set the JWT token for subsequent requests.
-5. To change the user, from the same button, you can log out and log in with a different user.
+3. For admin login, use 'admin' as username and 'admin' as password.
+4. For authentication, use the `/api/auth/login` endpoint to obtain a JWT token.
+5. You can use 'Authorize' button in Swagger UI to set the JWT token for subsequent requests.
+6. To change the user, from the same button, you can log out and log in with a different user.
