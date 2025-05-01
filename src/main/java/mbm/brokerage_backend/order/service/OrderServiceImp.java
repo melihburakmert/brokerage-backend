@@ -2,6 +2,8 @@ package mbm.brokerage_backend.order.service;
 
 import mbm.brokerage_backend.asset.AssetDto;
 import mbm.brokerage_backend.asset.AssetService;
+import mbm.brokerage_backend.common.CustomerNotFoundException;
+import mbm.brokerage_backend.customer.CustomerService;
 import mbm.brokerage_backend.order.OrderDto;
 import mbm.brokerage_backend.order.OrderService;
 import mbm.brokerage_backend.order.domain.CreateOrderDto;
@@ -25,11 +27,16 @@ public class OrderServiceImp implements OrderService {
     private static final String TRY = "TRY";
 
     private final AssetService assetService;
+    private final CustomerService  customerService;
     private final OrderRepository orderRepository;
     private final OrderEntityToDtoMapper orderEntityToDtoMapper;
 
-    public OrderServiceImp(final AssetService assetService, final OrderRepository orderRepository, final OrderEntityToDtoMapper orderEntityToDtoMapper) {
+    public OrderServiceImp(final AssetService assetService,
+                           final CustomerService customerService,
+                           final OrderRepository orderRepository,
+                           final OrderEntityToDtoMapper orderEntityToDtoMapper) {
         this.assetService = assetService;
+        this.customerService = customerService;
         this.orderRepository = orderRepository;
         this.orderEntityToDtoMapper = orderEntityToDtoMapper;
     }
@@ -43,6 +50,7 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     public List<OrderDto> getOrders(final String customerId, final Instant fromDate, final Instant toDate) {
+        validateCustomerExists(customerId);
         final List<OrderEntity> orderEntities = getOrderEntities(customerId, fromDate, toDate);
 
         return orderEntityToDtoMapper.map(orderEntities);
@@ -52,7 +60,8 @@ public class OrderServiceImp implements OrderService {
     @Transactional
     public OrderDto createOrder(final CreateOrderDto createOrderDto) {
         final String customerId = createOrderDto.customerId();
-        // TODO: Check if customer exists
+        validateCustomerExists(customerId);
+
         final String assetName = createOrderDto.orderSide() == OrderSide.BUY ? TRY : createOrderDto.assetName();
         final BigDecimal requiredAmount = calculateOrderValue(createOrderDto.orderSide(), createOrderDto.price(), createOrderDto.size());
 
@@ -188,6 +197,12 @@ public class OrderServiceImp implements OrderService {
             return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, fromDate, Instant.now());
         } else {
             return orderRepository.findByCustomerIdAndCreateDateBetween(customerId, Instant.EPOCH, toDate);
+        }
+    }
+
+    private void validateCustomerExists(final String customerId) {
+        if (!customerService.existsByUsername(customerId)) {
+            throw new CustomerNotFoundException(customerId);
         }
     }
 }

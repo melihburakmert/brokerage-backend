@@ -18,6 +18,7 @@ import java.util.List;
 @Service
 public class AssetServiceImp implements AssetService {
 
+    private static final String TRY_ASSET = "TRY";
     private final AssetRepository assetRepository;
     private final AssetEntityToDtoMapper assetEntityToDtoMapper;
     private final CustomerService customerService;
@@ -34,6 +35,8 @@ public class AssetServiceImp implements AssetService {
     @Override
     @Transactional
     public AssetDto initializeAsset(final String customerId, final String assetName) {
+        validateCustomerExists(customerId);
+
         final AssetEntity assetEntity = buildAsset(customerId, assetName);
 
         final AssetEntity savedAsset = assetRepository.save(assetEntity);
@@ -42,12 +45,16 @@ public class AssetServiceImp implements AssetService {
 
     @Override
     public List<AssetDto> getAssets(final String customerId) {
+        validateCustomerExists(customerId);
+
         final List<AssetEntity> assetEntities = assetRepository.findByCustomerId(customerId);
         return assetEntityToDtoMapper.map(assetEntities);
     }
 
     @Override
     public AssetDto getAssetByCustomerIdAndAssetName(final String customerId, final String assetName) {
+        validateCustomerExists(customerId);
+
         final AssetEntity assetEntity = getAssetEntity(customerId, assetName);
         return assetEntityToDtoMapper.map(assetEntity);
     }
@@ -55,6 +62,8 @@ public class AssetServiceImp implements AssetService {
     @Override
     @Transactional
     public void updateAssetSize(final String customerId, final String assetName, final BigDecimal newSize) {
+        validateCustomerExists(customerId);
+
         final AssetEntity asset = getAssetEntity(customerId, assetName);
 
         asset.setSize(newSize);
@@ -64,6 +73,8 @@ public class AssetServiceImp implements AssetService {
     @Override
     @Transactional
     public void updateAssetUsableSize(final String customerId, final String assetName, final BigDecimal newUsableSize) {
+        validateCustomerExists(customerId);
+
         final AssetEntity asset = getAssetEntity(customerId, assetName);
 
         asset.setUsableSize(newUsableSize);
@@ -73,6 +84,8 @@ public class AssetServiceImp implements AssetService {
     @Override
     @Transactional
     public void updateAssetSizeAndUsableSize(final String customerId, final String assetName, final BigDecimal newSize, final BigDecimal newUsableSize) {
+        validateCustomerExists(customerId);
+
         final AssetEntity asset = getAssetEntity(customerId, assetName);
 
         asset.setSize(newSize);
@@ -82,24 +95,23 @@ public class AssetServiceImp implements AssetService {
 
     @Override
     public boolean isAssetExists(final String customerId, final String assetName) {
-        return assetRepository.existsByCustomerIdAndAssetName(customerId, assetName);
+        validateCustomerExists(customerId);
+
+        return isExistsByCustomerIdAndAssetName(customerId, assetName);
     }
 
     @Override
     @Transactional
     public AssetDto setBalance(final SetBalanceDto setBalanceDto) {
         final String customerId = setBalanceDto.customerId();
-        if (!customerService.existsByUsername(customerId)) {
-            throw new CustomerNotFoundException(customerId);
-        }
+        validateCustomerExists(customerId);
 
-        final String assetName = "TRY";
         final AssetEntity asset;
-        if (!isAssetExists(customerId, assetName)) {
-            asset = buildAsset(customerId, assetName);
+        if (!isExistsByCustomerIdAndAssetName(customerId, TRY_ASSET)) {
+            asset = buildAsset(customerId, TRY_ASSET);
         }
         else {
-            asset = getAssetEntity(customerId, assetName);
+            asset = getAssetEntity(customerId, TRY_ASSET);
         }
         asset.setSize(setBalanceDto.balance());
         asset.setUsableSize(setBalanceDto.balance());
@@ -120,5 +132,15 @@ public class AssetServiceImp implements AssetService {
                 .size(BigDecimal.ZERO)
                 .usableSize(BigDecimal.ZERO)
                 .build();
+    }
+
+    private void validateCustomerExists(final String customerId) {
+        if (!customerService.existsByUsername(customerId)) {
+            throw new CustomerNotFoundException(customerId);
+        }
+    }
+
+    private boolean isExistsByCustomerIdAndAssetName(final String customerId, final String assetName) {
+        return assetRepository.existsByCustomerIdAndAssetName(customerId, assetName);
     }
 }

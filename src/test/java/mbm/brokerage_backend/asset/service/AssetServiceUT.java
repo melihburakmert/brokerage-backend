@@ -24,7 +24,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.instancio.Instancio.create;
 import static org.instancio.Instancio.ofList;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AssetServiceUT {
@@ -55,6 +59,7 @@ class AssetServiceUT {
                 .size(SIZE)
                 .create();
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerId(customerId)).thenReturn(assetEntities);
         when(assetEntityToDtoMapper.map(assetEntities)).thenReturn(assetDtos);
 
@@ -63,8 +68,22 @@ class AssetServiceUT {
 
         // THEN
         assertThat(result).isNotNull().hasSize(SIZE).containsExactlyElementsOf(assetDtos);
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerId(customerId);
         verify(assetEntityToDtoMapper).map(assetEntities);
+    }
+
+    @Test
+    void test_getAssets_customerNotFound() {
+        // GIVEN
+        final String customerId = create(String.class);
+        when(customerService.existsByUsername(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(CustomerNotFoundException.class, () -> assetService.getAssets(customerId));
+        verify(customerService).existsByUsername(customerId);
+        verifyNoInteractions(assetRepository);
+        verifyNoInteractions(assetEntityToDtoMapper);
     }
 
     @Test
@@ -76,6 +95,7 @@ class AssetServiceUT {
         final AssetEntity assetEntity = create(AssetEntity.class);
         final AssetDto assetDto = create(AssetDto.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.of(assetEntity));
         when(assetEntityToDtoMapper.map(assetEntity)).thenReturn(assetDto);
 
@@ -84,8 +104,24 @@ class AssetServiceUT {
 
         // THEN
         assertThat(result).isNotNull().isEqualTo(assetDto);
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verify(assetEntityToDtoMapper).map(assetEntity);
+    }
+
+    @Test
+    void test_getAssetByCustomerIdAndAssetName_customerNotFound() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+
+        when(customerService.existsByUsername(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(CustomerNotFoundException.class, () -> assetService.getAssetByCustomerIdAndAssetName(customerId, assetName));
+        verify(customerService).existsByUsername(customerId);
+        verifyNoInteractions(assetRepository);
+        verifyNoInteractions(assetEntityToDtoMapper);
     }
 
     @Test
@@ -94,10 +130,12 @@ class AssetServiceUT {
         final String customerId = create(String.class);
         final String assetName = create(String.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.empty());
 
         // WHEN & THEN
         assertThrows(AssetNotFoundException.class, () -> assetService.getAssetByCustomerIdAndAssetName(customerId, assetName));
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verifyNoInteractions(assetEntityToDtoMapper);
     }
@@ -111,6 +149,7 @@ class AssetServiceUT {
 
         final AssetEntity assetEntity = create(AssetEntity.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.of(assetEntity));
 
         // WHEN
@@ -118,8 +157,24 @@ class AssetServiceUT {
 
         // THEN
         assertThat(assetEntity.getSize()).isEqualTo(newSize);
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verify(assetRepository).save(assetEntity);
+    }
+
+    @Test
+    void test_updateAssetSize_customerNotFound() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+        final BigDecimal newSize = create(BigDecimal.class);
+
+        when(customerService.existsByUsername(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(CustomerNotFoundException.class, () -> assetService.updateAssetSize(customerId, assetName, newSize));
+        verify(customerService).existsByUsername(customerId);
+        verifyNoInteractions(assetRepository);
     }
 
     @Test
@@ -129,10 +184,12 @@ class AssetServiceUT {
         final String assetName = create(String.class);
         final BigDecimal newSize = create(BigDecimal.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.empty());
 
         // WHEN & THEN
         assertThrows(AssetNotFoundException.class, () -> assetService.updateAssetSize(customerId, assetName, newSize));
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verifyNoMoreInteractions(assetRepository);
     }
@@ -146,6 +203,7 @@ class AssetServiceUT {
 
         final AssetEntity assetEntity = create(AssetEntity.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.of(assetEntity));
 
         // WHEN
@@ -153,8 +211,24 @@ class AssetServiceUT {
 
         // THEN
         assertThat(assetEntity.getUsableSize()).isEqualTo(newUsableSize);
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verify(assetRepository).save(assetEntity);
+    }
+
+    @Test
+    void test_updateAssetUsableSize_customerNotFound() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+        final BigDecimal newUsableSize = create(BigDecimal.class);
+
+        when(customerService.existsByUsername(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(CustomerNotFoundException.class, () -> assetService.updateAssetUsableSize(customerId, assetName, newUsableSize));
+        verify(customerService).existsByUsername(customerId);
+        verifyNoInteractions(assetRepository);
     }
 
     @Test
@@ -164,10 +238,12 @@ class AssetServiceUT {
         final String assetName = create(String.class);
         final BigDecimal newUsableSize = create(BigDecimal.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.empty());
 
         // WHEN & THEN
         assertThrows(AssetNotFoundException.class, () -> assetService.updateAssetUsableSize(customerId, assetName, newUsableSize));
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verifyNoMoreInteractions(assetRepository);
     }
@@ -182,6 +258,7 @@ class AssetServiceUT {
 
         final AssetEntity assetEntity = create(AssetEntity.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.of(assetEntity));
 
         // WHEN
@@ -190,8 +267,25 @@ class AssetServiceUT {
         // THEN
         assertThat(assetEntity.getSize()).isEqualTo(newSize);
         assertThat(assetEntity.getUsableSize()).isEqualTo(newUsableSize);
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verify(assetRepository).save(assetEntity);
+    }
+
+    @Test
+    void test_updateAssetSizeAndUsableSize_customerNotFound() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+        final BigDecimal newSize = create(BigDecimal.class);
+        final BigDecimal newUsableSize = create(BigDecimal.class);
+
+        when(customerService.existsByUsername(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(CustomerNotFoundException.class, () -> assetService.updateAssetSizeAndUsableSize(customerId, assetName, newSize, newUsableSize));
+        verify(customerService).existsByUsername(customerId);
+        verifyNoInteractions(assetRepository);
     }
 
     @Test
@@ -202,10 +296,12 @@ class AssetServiceUT {
         final BigDecimal newSize = create(BigDecimal.class);
         final BigDecimal newUsableSize = create(BigDecimal.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.findByCustomerIdAndAssetName(customerId, assetName)).thenReturn(Optional.empty());
 
         // WHEN & THEN
         assertThrows(AssetNotFoundException.class, () -> assetService.updateAssetSizeAndUsableSize(customerId, assetName, newSize, newUsableSize));
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).findByCustomerIdAndAssetName(customerId, assetName);
         verifyNoMoreInteractions(assetRepository);
     }
@@ -226,6 +322,7 @@ class AssetServiceUT {
         final AssetEntity savedEntity = create(AssetEntity.class);
         final AssetDto expectedDto = create(AssetDto.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.save(expectedEntity)).thenReturn(savedEntity);
         when(assetEntityToDtoMapper.map(savedEntity)).thenReturn(expectedDto);
 
@@ -234,8 +331,24 @@ class AssetServiceUT {
 
         // THEN
         assertThat(result).isNotNull().isEqualTo(expectedDto);
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).save(expectedEntity);
         verify(assetEntityToDtoMapper).map(savedEntity);
+    }
+
+    @Test
+    void test_initializeAsset_customerNotFound() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+
+        when(customerService.existsByUsername(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(CustomerNotFoundException.class, () -> assetService.initializeAsset(customerId, assetName));
+        verify(customerService).existsByUsername(customerId);
+        verifyNoInteractions(assetRepository);
+        verifyNoInteractions(assetEntityToDtoMapper);
     }
 
     @Test
@@ -244,6 +357,7 @@ class AssetServiceUT {
         final String customerId = create(String.class);
         final String assetName = create(String.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.existsByCustomerIdAndAssetName(customerId, assetName)).thenReturn(true);
 
         // WHEN
@@ -251,7 +365,22 @@ class AssetServiceUT {
 
         // THEN
         assertThat(result).isTrue();
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).existsByCustomerIdAndAssetName(customerId, assetName);
+    }
+
+    @Test
+    void test_isAssetExists_customerNotFound() {
+        // GIVEN
+        final String customerId = create(String.class);
+        final String assetName = create(String.class);
+
+        when(customerService.existsByUsername(customerId)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(CustomerNotFoundException.class, () -> assetService.isAssetExists(customerId, assetName));
+        verify(customerService).existsByUsername(customerId);
+        verifyNoInteractions(assetRepository);
     }
 
     @Test
@@ -260,6 +389,7 @@ class AssetServiceUT {
         final String customerId = create(String.class);
         final String assetName = create(String.class);
 
+        when(customerService.existsByUsername(customerId)).thenReturn(true);
         when(assetRepository.existsByCustomerIdAndAssetName(customerId, assetName)).thenReturn(false);
 
         // WHEN
@@ -267,6 +397,7 @@ class AssetServiceUT {
 
         // THEN
         assertThat(result).isFalse();
+        verify(customerService).existsByUsername(customerId);
         verify(assetRepository).existsByCustomerIdAndAssetName(customerId, assetName);
     }
 

@@ -2,6 +2,8 @@ package mbm.brokerage_backend.order.service;
 
 import mbm.brokerage_backend.asset.AssetDto;
 import mbm.brokerage_backend.asset.AssetService;
+import mbm.brokerage_backend.common.CustomerNotFoundException;
+import mbm.brokerage_backend.customer.CustomerService;
 import mbm.brokerage_backend.order.OrderDto;
 import mbm.brokerage_backend.order.OrderService;
 import mbm.brokerage_backend.order.domain.CreateOrderDto;
@@ -47,6 +49,7 @@ class OrderServiceUT {
     private static final long ORDER_ID = 123L;
 
     @Mock private AssetService assetService;
+    @Mock private CustomerService customerService;
     @Mock private OrderRepository orderRepository;
     @Mock private OrderEntityToDtoMapper orderEntityToDtoMapper;
 
@@ -54,7 +57,7 @@ class OrderServiceUT {
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderServiceImp(assetService, orderRepository, orderEntityToDtoMapper);
+        orderService = new OrderServiceImp(assetService, customerService, orderRepository, orderEntityToDtoMapper);
     }
 
     @Test
@@ -97,6 +100,7 @@ class OrderServiceUT {
         final List<OrderEntity> orderEntities = ofList(OrderEntity.class).size(SIZE).create();
         final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(orderRepository.findByCustomerIdAndCreateDateBetween(CUSTOMER_ID, fromDate, toDate)).thenReturn(orderEntities);
         when(orderEntityToDtoMapper.map(orderEntities)).thenReturn(orderDtos);
 
@@ -105,8 +109,26 @@ class OrderServiceUT {
 
         // THEN
         assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
+        verify(customerService).existsByUsername(CUSTOMER_ID);
         verify(orderRepository).findByCustomerIdAndCreateDateBetween(CUSTOMER_ID, fromDate, toDate);
         verify(orderEntityToDtoMapper).map(orderEntities);
+    }
+
+    @Test
+    void test_getOrders_whenCustomerDoesNotExist() {
+        // GIVEN
+        final Instant fromDate = Instant.now().minusSeconds(create(Long.class));
+        final Instant toDate = Instant.now();
+
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderService.getOrders(CUSTOMER_ID, fromDate, toDate))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerService).existsByUsername(CUSTOMER_ID);
+        verifyNoInteractions(orderRepository);
+        verifyNoInteractions(orderEntityToDtoMapper);
     }
 
     @Test
@@ -115,6 +137,7 @@ class OrderServiceUT {
         final List<OrderEntity> orderEntities = ofList(OrderEntity.class).size(SIZE).create();
         final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(orderRepository.findByCustomerId(CUSTOMER_ID)).thenReturn(orderEntities);
         when(orderEntityToDtoMapper.map(orderEntities)).thenReturn(orderDtos);
 
@@ -123,6 +146,7 @@ class OrderServiceUT {
 
         // THEN
         assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
+        verify(customerService).existsByUsername(CUSTOMER_ID);
         verify(orderRepository).findByCustomerId(CUSTOMER_ID);
         verify(orderEntityToDtoMapper).map(orderEntities);
     }
@@ -134,6 +158,7 @@ class OrderServiceUT {
         final List<OrderEntity> orderEntities = ofList(OrderEntity.class).size(SIZE).create();
         final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(orderRepository.findByCustomerIdAndCreateDateBetween(CUSTOMER_ID, Instant.EPOCH, toDate)).thenReturn(orderEntities);
         when(orderEntityToDtoMapper.map(orderEntities)).thenReturn(orderDtos);
 
@@ -142,6 +167,7 @@ class OrderServiceUT {
 
         // THEN
         assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
+        verify(customerService).existsByUsername(CUSTOMER_ID);
         verify(orderRepository).findByCustomerIdAndCreateDateBetween(CUSTOMER_ID, Instant.EPOCH, toDate);
         verify(orderEntityToDtoMapper).map(orderEntities);
     }
@@ -153,6 +179,7 @@ class OrderServiceUT {
         final List<OrderEntity> orderEntities = ofList(OrderEntity.class).size(SIZE).create();
         final List<OrderDto> orderDtos = ofList(OrderDto.class).size(SIZE).create();
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(orderRepository.findByCustomerIdAndCreateDateBetween(eq(CUSTOMER_ID), eq(fromDate), any(Instant.class))).thenReturn(orderEntities);
         when(orderEntityToDtoMapper.map(orderEntities)).thenReturn(orderDtos);
 
@@ -161,8 +188,36 @@ class OrderServiceUT {
 
         // THEN
         assertThat(result).isNotNull().hasSize(orderDtos.size()).isEqualTo(orderDtos);
+        verify(customerService).existsByUsername(CUSTOMER_ID);
         verify(orderRepository).findByCustomerIdAndCreateDateBetween(eq(CUSTOMER_ID), eq(fromDate), any(Instant.class));
         verify(orderEntityToDtoMapper).map(orderEntities);
+    }
+
+    @Test
+    void test_createOrder_whenCustomerDoesNotExist() {
+        // GIVEN
+        final OrderSide orderSide = OrderSide.BUY;
+        final BigDecimal orderSize = BigDecimal.valueOf(2);
+        final BigDecimal orderPrice = BigDecimal.valueOf(30000);
+
+        final CreateOrderDto createOrderDto = of(CreateOrderDto.class)
+                .set(Select.field(CreateOrderDto::customerId), CUSTOMER_ID)
+                .set(Select.field(CreateOrderDto::assetName), ASSET_NAME)
+                .set(Select.field(CreateOrderDto::orderSide), orderSide)
+                .set(Select.field(CreateOrderDto::size), orderSize)
+                .set(Select.field(CreateOrderDto::price), orderPrice)
+                .create();
+
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderService.createOrder(createOrderDto))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerService).existsByUsername(CUSTOMER_ID);
+        verifyNoInteractions(assetService);
+        verifyNoInteractions(orderRepository);
+        verifyNoInteractions(orderEntityToDtoMapper);
     }
 
     @Test
@@ -189,6 +244,7 @@ class OrderServiceUT {
         final OrderEntity orderEntity = create(OrderEntity.class);
         final OrderDto expectedOrderDto = create(OrderDto.class);
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, TRY_ASSET)).thenReturn(tryAsset);
         when(orderRepository.save(any(OrderEntity.class))).thenReturn(orderEntity);
         when(orderEntityToDtoMapper.map(orderEntity)).thenReturn(expectedOrderDto);
@@ -199,6 +255,7 @@ class OrderServiceUT {
         // THEN
         assertThat(result).isEqualTo(expectedOrderDto);
 
+        verify(customerService).existsByUsername(CUSTOMER_ID);
         verify(assetService).updateAssetUsableSize(CUSTOMER_ID, TRY_ASSET,
                 tryAsset.usableSize().subtract(requiredAmount));
 
@@ -239,6 +296,7 @@ class OrderServiceUT {
         final OrderEntity orderEntity = create(OrderEntity.class);
         final OrderDto expectedOrderDto = create(OrderDto.class);
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, ASSET_NAME)).thenReturn(btcAsset);
         when(orderRepository.save(any(OrderEntity.class))).thenReturn(orderEntity);
         when(orderEntityToDtoMapper.map(orderEntity)).thenReturn(expectedOrderDto);
@@ -249,6 +307,7 @@ class OrderServiceUT {
         // THEN
         assertThat(result).isEqualTo(expectedOrderDto);
 
+        verify(customerService).existsByUsername(CUSTOMER_ID);
         verify(assetService).updateAssetUsableSize(CUSTOMER_ID, ASSET_NAME,
                 btcAsset.usableSize().subtract(orderSize));
 
@@ -286,6 +345,7 @@ class OrderServiceUT {
                 .set(Select.field(AssetDto::usableSize), BigDecimal.valueOf(100000)) // Not enough usable funds
                 .create();
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, TRY_ASSET)).thenReturn(tryAsset);
 
         // WHEN & THEN
@@ -294,6 +354,7 @@ class OrderServiceUT {
 
         verify(assetService).getAssetByCustomerIdAndAssetName(CUSTOMER_ID, TRY_ASSET);
         verify(assetService, never()).updateAssetUsableSize(anyString(), anyString(), any(BigDecimal.class));
+        verify(customerService).existsByUsername(CUSTOMER_ID);
         verifyNoInteractions(orderRepository);
         verifyNoInteractions(orderEntityToDtoMapper);
     }
@@ -317,6 +378,7 @@ class OrderServiceUT {
                 .set(Select.field(AssetDto::usableSize), BigDecimal.valueOf(2)) // Not enough usable assets
                 .create();
 
+        when(customerService.existsByUsername(CUSTOMER_ID)).thenReturn(true);
         when(assetService.getAssetByCustomerIdAndAssetName(CUSTOMER_ID, ASSET_NAME)).thenReturn(btcAsset);
 
         // WHEN & THEN
@@ -325,6 +387,25 @@ class OrderServiceUT {
 
         verify(assetService).getAssetByCustomerIdAndAssetName(CUSTOMER_ID, ASSET_NAME);
         verify(assetService, never()).updateAssetUsableSize(anyString(), anyString(), any(BigDecimal.class));
+        verify(customerService).existsByUsername(CUSTOMER_ID);
+        verifyNoInteractions(orderRepository);
+        verifyNoInteractions(orderEntityToDtoMapper);
+    }
+
+    @Test
+    void test_createOrder_customerNotExists() {
+        // GIVEN
+        final CreateOrderDto createOrderDto = create(CreateOrderDto.class);
+        final String username = createOrderDto.customerId();
+
+        when(customerService.existsByUsername(username)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> orderService.createOrder(createOrderDto))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerService).existsByUsername(username);
+        verifyNoInteractions(assetService);
         verifyNoInteractions(orderRepository);
         verifyNoInteractions(orderEntityToDtoMapper);
     }
