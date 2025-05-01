@@ -128,7 +128,7 @@ The Brokerage Backend API is built using Spring Boot and provides the following 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/brokerage-backend.git
+   git clone https://github.com/melihburakmert/brokerage-backend.git
    ```
 2. Navigate to the project directory:
    ```bash
