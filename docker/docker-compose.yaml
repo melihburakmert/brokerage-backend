@@ -1,0 +1,17 @@
+version: '3.7'
+
+services:
+  brokerage-backend:
+    container_name: brokerage-backend
+    image: mbm/brokerage-backend:0.0.1-SNAPSHOT
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    name: backend-network
+    driver: bridge

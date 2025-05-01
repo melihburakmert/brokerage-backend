@@ -9,7 +9,7 @@ This project provides a backend API for a brokerage system, including asset mana
     - [Asset API](#asset-api)
     - [Order API](#order-api)
 - [Setup](#setup)
-- [License](#license)
+- [Running in Docker Locally](#running-in-docker-locally)
 
 ## Overview
 
@@ -134,11 +134,35 @@ The Brokerage Backend API is built using Spring Boot and provides the following 
    ```bash
    cd brokerage-backend
    ```
-3. Build the project:
+3. Set up JWT secret key in `application.properties`. You can use https://jwtsecret.com/generate to generate a secret key.
+   ```properties
+   jwt.secret=your_jwt_secret_key
+   ```
+
+4. Build the project:
    ```bash
    mvn clean install
    ```
-4. Run the application:
+5. Run the application:
    ```bash
    mvn spring-boot:run
    ```
+
+## Running in Docker Locally
+
+1. Add .env file under the docker directory with your environment variables:
+   ```env
+   JWT_SECRET=your_jwt_secret_key
+   ```
+2. Build the image:
+    ```bash
+    mvn jib:dockerBuild
+    ```
+3. Navigate to the docker directory:
+    ```bash
+    cd docker
+    ```
+4. Deploy the image to Docker:
+    ```bash
+      docker-compose up -d brokerage-backend
+     ```
