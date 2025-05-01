@@ -42,6 +42,45 @@ paths:
               schema:
                 $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
 
+  /api/admin/assets/balance:
+    post:
+      summary: Set balance for a customer
+      description: Sets the TRY balance for a specified customer (admin only)
+      tags:
+        - assets
+      operationId: setBalance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetBalanceRequest'
+      responses:
+        201:
+          description: Balance set successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        400:
+          description: Invalid request parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+        403:
+          description: Forbidden - Admin privileges required
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+        default:
+          description: default error response
+          content:
+            application/problem+json:
+              schema:
+                $ref: './common-schema.yaml#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     AssetResponse:
@@ -77,6 +116,23 @@ components:
           description: Amount of the asset available for trading (not reserved in pending orders)
           example: 75.0
 
+    SetBalanceRequest:
+      type: object
+      required:
+        - customerId
+        - balance
+      properties:
+        customerId:
+          type: string
+          description: The unique identifier(username) of the customer
+          example: "customer123"
+        balance:
+          type: number
+          format: double
+          description: The TRY balance to set for the customer
+          example: 10000.0
+          minimum: 0
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -85,3 +141,4 @@ components:
 
 security:
   - bearerAuth: []
+

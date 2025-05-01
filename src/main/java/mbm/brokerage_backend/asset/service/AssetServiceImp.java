@@ -2,6 +2,7 @@ package mbm.brokerage_backend.asset.service;
 
 import mbm.brokerage_backend.asset.AssetDto;
 import mbm.brokerage_backend.asset.AssetService;
+import mbm.brokerage_backend.asset.domain.SetBalanceDto;
 import mbm.brokerage_backend.common.AssetNotFoundException;
 import mbm.brokerage_backend.asset.repository.AssetRepository;
 import mbm.brokerage_backend.asset.repository.entity.AssetEntity;
@@ -77,6 +78,26 @@ public class AssetServiceImp implements AssetService {
     @Override
     public boolean isAssetExists(final String customerId, final String assetName) {
         return assetRepository.existsByCustomerIdAndAssetName(customerId, assetName);
+    }
+
+    @Override
+    @Transactional
+    public AssetDto setBalance(final SetBalanceDto setBalanceDto) {
+        final String customerId = setBalanceDto.customerId();
+        final String assetName = "TRY";
+
+        final AssetEntity asset;
+        if (!isAssetExists(customerId, assetName)) {
+            asset = buildAsset(customerId, assetName);
+        }
+        else {
+            asset = getAssetEntity(customerId, assetName);
+        }
+        asset.setSize(setBalanceDto.balance());
+        asset.setUsableSize(setBalanceDto.balance());
+
+        final AssetEntity savedAsset = assetRepository.save(asset);
+        return assetEntityToDtoMapper.map(savedAsset);
     }
 
     private AssetEntity getAssetEntity(final String customerId, final String assetName) {

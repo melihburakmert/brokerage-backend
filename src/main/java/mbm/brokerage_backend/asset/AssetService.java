@@ -1,5 +1,7 @@
 package mbm.brokerage_backend.asset;
 
+import mbm.brokerage_backend.asset.domain.SetBalanceDto;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -18,5 +20,7 @@ public interface AssetService {
     void updateAssetSizeAndUsableSize(String customerId, String assetName, BigDecimal newSize, BigDecimal newUsableSize);
 
     boolean isAssetExists(String customerId, String assetName);
+
+    AssetDto setBalance(SetBalanceDto setBalanceDto);
 }
 
