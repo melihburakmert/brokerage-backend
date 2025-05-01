@@ -175,3 +175,14 @@ The Brokerage Backend API is built using Spring Boot and provides the following 
 4. For authentication, use the `/api/auth/login` endpoint to obtain a JWT token.
 5. You can use 'Authorize' button in Swagger UI to set the JWT token for subsequent requests.
 6. To change the user, from the same button, you can log out and log in with a different user.
+
+## Example scenario
+
+1. Register a new user using `/api/auth/register`.
+2. Login using `/api/auth/login` to obtain a JWT token.
+3. Use the JWT token to access the asset and order APIs.
+4. Log out and login back as admin to set the TRY balance for a customer using `/api/admin/assets/balance`.
+5. Create a few orders using `/api/orders`.
+6. Cancel an order using `/api/orders/{orderId}`.
+7. Match an order using `/api/admin/orders/{orderId}/match`.
+8. Check asset and order details using the respective APIs.
