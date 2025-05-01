@@ -52,6 +52,7 @@ public class OrderServiceImp implements OrderService {
     @Transactional
     public OrderDto createOrder(final CreateOrderDto createOrderDto) {
         final String customerId = createOrderDto.customerId();
+        // TODO: Check if customer exists
         final String assetName = createOrderDto.orderSide() == OrderSide.BUY ? TRY : createOrderDto.assetName();
         final BigDecimal requiredAmount = calculateOrderValue(createOrderDto.orderSide(), createOrderDto.price(), createOrderDto.size());
 

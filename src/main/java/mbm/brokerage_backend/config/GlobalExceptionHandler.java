@@ -1,6 +1,7 @@
 package mbm.brokerage_backend.config;
 
 import mbm.brokerage_backend.common.AssetNotFoundException;
+import mbm.brokerage_backend.common.CustomerNotFoundException;
 import mbm.brokerage_backend.common.ErrorResponse;
 import mbm.brokerage_backend.common.InsufficientAssetsException;
 import mbm.brokerage_backend.common.OrderNotFoundException;
@@ -13,6 +14,17 @@ import java.time.Instant;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCustomerNotFoundException(final CustomerNotFoundException ex) {
+        final ErrorResponse errorResponse = new ErrorResponse()
+                .status(ex.getStatus().value())
+                .message(ex.getMessage())
+                .details(ex.getDetails())
+                .timestamp(Instant.now());
+
+        return new ResponseEntity<>(errorResponse, ex.getStatus());
+    }
 
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleOrderNotFoundException(final OrderNotFoundException ex) {
