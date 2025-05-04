@@ -1,5 +1,6 @@
 package mbm.brokerage_backend.auth.web;
 
+import lombok.RequiredArgsConstructor;
 import mbm.brokerage_backend.auth.web.api.AuthApiDelegate;
 import mbm.brokerage_backend.auth.web.model.AuthenticationRequest;
 import mbm.brokerage_backend.auth.web.model.AuthenticationResponse;
@@ -12,23 +13,17 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class AuthController implements AuthApiDelegate {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final CustomerService customerService;
-
-    public AuthController(
-            final AuthenticationManager authenticationManager,
-            final JwtService jwtService,
-            final CustomerService customerService) {
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-        this.customerService = customerService;
-    }
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public ResponseEntity<AuthenticationResponse> login(final AuthenticationRequest request) {
@@ -44,12 +39,13 @@ public class AuthController implements AuthApiDelegate {
     public ResponseEntity<AuthenticationResponse> register(final RegistrationRequest request) {
         final String username = request.getUsername();
         final String password = request.getPassword();
+        final String encodedPassword = passwordEncoder.encode(password);
 
         if (customerService.existsByUsername(username)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
 
-        customerService.registerCustomer(username, password);
+        customerService.registerCustomer(username, encodedPassword);
         final Authentication authentication = authenticateUser(username, password);
 
         final UserDetails userDetails = (UserDetails) authentication.getPrincipal();

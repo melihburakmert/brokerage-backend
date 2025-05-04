@@ -15,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.instancio.Instancio.create;
@@ -29,12 +30,13 @@ class AuthControllerUT {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private JwtService jwtService;
     @Mock private CustomerService customerService;
+    @Mock private PasswordEncoder passwordEncoder;
 
     private AuthController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new AuthController(authenticationManager, jwtService, customerService);
+        controller = new AuthController(authenticationManager, jwtService, customerService, passwordEncoder);
     }
 
     @Test
@@ -73,10 +75,12 @@ class AuthControllerUT {
         final RegistrationRequest registrationRequest = create(RegistrationRequest.class);
         final String username = registrationRequest.getUsername();
         final String password = registrationRequest.getPassword();
+        final String encodedPassword = create(String.class);
         final Authentication authentication = mock(Authentication.class);
         final UserDetails userDetails = mock(UserDetails.class);
         final String token = create(String.class);
 
+        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
         when(customerService.existsByUsername(username)).thenReturn(false);
         when(authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password)))
@@ -94,7 +98,7 @@ class AuthControllerUT {
             assertThat(response.getBody().getToken()).isEqualTo(token);
         });
         verify(customerService).existsByUsername(username);
-        verify(customerService).registerCustomer(username, password);
+        verify(customerService).registerCustomer(username, encodedPassword);
         verify(authenticationManager).authenticate(
                 new UsernamePasswordAuthenticationToken(username, password));
         verify(authentication).getPrincipal();

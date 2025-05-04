@@ -1,16 +1,17 @@
 package mbm.brokerage_backend.customer.service;
 
+import mbm.brokerage_backend.customer.CustomerDto;
 import mbm.brokerage_backend.customer.CustomerService;
 import mbm.brokerage_backend.customer.Role;
 import mbm.brokerage_backend.customer.repository.CustomerRepository;
 import mbm.brokerage_backend.customer.repository.entity.CustomerEntity;
+import mbm.brokerage_backend.customer.repository.mapper.CustomerEntityToDtoMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -23,13 +24,13 @@ import static org.mockito.Mockito.when;
 class CustomerServiceUT {
 
     @Mock private CustomerRepository customerRepository;
-    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private CustomerEntityToDtoMapper customerEntityToDtoMapper;
 
     private CustomerService customerService;
 
     @BeforeEach
     void setUp() {
-        customerService = new CustomerServiceImp(customerRepository, passwordEncoder);
+        customerService = new CustomerServiceImp(customerRepository, customerEntityToDtoMapper);
     }
 
     @Test
@@ -37,9 +38,7 @@ class CustomerServiceUT {
         // GIVEN
         final String username = create(String.class);
         final String password = create(String.class);
-        final String encodedPassword = create(String.class);
 
-        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
 
         // WHEN
         customerService.registerCustomer(username, password);
@@ -49,9 +48,8 @@ class CustomerServiceUT {
         verify(customerRepository).save(captor.capture());
         final CustomerEntity customer = captor.getValue();
         assertThat(customer.getUsername()).isEqualTo(username);
-        assertThat(customer.getPassword()).isEqualTo(encodedPassword);
+        assertThat(customer.getPassword()).isEqualTo(password);
         assertThat(customer.getRole()).isEqualTo(Role.CUSTOMER);
-        verify(passwordEncoder).encode(password);
     }
 
     @Test
@@ -81,6 +79,23 @@ class CustomerServiceUT {
 
         // THEN
         assertThat(exists).isFalse();
+    }
+
+    @Test
+    void test_findByUsername() {
+        // GIVEN
+        final String username = create(String.class);
+        final CustomerEntity customer = create(CustomerEntity.class);
+        final CustomerDto customerDto = create(CustomerDto.class);
+
+        when(customerRepository.findByUsername(username)).thenReturn(Optional.of(customer));
+        when(customerEntityToDtoMapper.map(customer)).thenReturn(customerDto);
+
+        // WHEN
+        final Optional<CustomerDto> result = customerService.findByUsername(username);
+
+        // THEN
+        assertThat(result).isPresent().hasValue(customerDto);
     }
 
 }

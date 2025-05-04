@@ -1,4 +1,7 @@
 package mbm.brokerage_backend.customer;
 
-public record CustomerDto(Long id, String username, Role role) {
+import lombok.Builder;
+
+@Builder
+public record CustomerDto(String username, String password, Role role) {
 }
